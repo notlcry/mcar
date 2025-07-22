@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>机器人控制</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.9.0/dist/nipplejs.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            height: 100vh;
+            touch-action: none;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 100%;
+            height: 100%;
+            padding: 10px;
+        }
+        .title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 改为16:9比例 */
+            margin-bottom: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .video-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 保持比例，不裁剪 */
+        }
+        .video-controls {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            z-index: 10;
+        }
+        .video-toggle {
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .joystick-area {
+            flex: 1;
+            position: relative;
+            background-color: rgba(200, 200, 200, 0.1);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .joystick-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .btn-control {
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            padding: 8px;
+            color: white;
+            background-color: #4287f5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        .btn-control:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-stop {
+            background-color: #f44336;
+            grid-column: 2;
+        }
+        .status-panel {
+            background-color: #333;
+            color: #0f0;
+            font-family: monospace;
+            padding: 5px;
+            border-radius: 5px;
+            height: 60px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        .speed-control {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .speed-slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+        @media (min-width: 768px) {
+            .controls-container {
+                flex-direction: row;
+            }
+            .joystick-area {
+                flex: 2;
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
+            .controls-panel {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            .title {
+                font-size: 1.2rem;
+                margin-bottom: 5px;
+            }
+            .controls-container {
+                height: auto; 
+                min-height: 40vh; /* 减少最小高度 */
+            }
+            .joystick-area {
+                height: 150px; /* 减小高度 */
+                min-height: 150px;
+            }
+            /* 确保在小屏幕上控制面板可见 */
+            .controls-panel {
+                margin-bottom: 60px;
+            }
+            /* 优化移动端按钮大小 */
+            .control-buttons {
+                gap: 5px;
+            }
+            .btn-control {
+                font-size: 14px;
+                padding: 8px;
+            }
+            /* 确保速度控制在iPhone上可见 */
+            .speed-control {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+            .speed-slider {
+                height: 25px;
+                margin: 5px 0;
+            }
+            /* 状态显示区调整 */
+            .status-panel {
+                height: 60px;
+                padding: 5px;
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+            /* 帮助面板调整 */
+            .help-panel {
+                font-size: 12px !important;
+                padding: 5px !important;
+            }
+            /* 视频控件调整 */
+            .video-controls {
+                bottom: 5px;
+                right: 5px;
+            }
+            .video-toggle {
+                padding: 3px 8px;
+                font-size: 10px;
+            }
+        }
+        /* 添加适配全面屏iPhone的样式 */
+        @media only screen 
+        and (device-width: 375px) 
+        and (device-height: 812px) 
+        and (-webkit-device-pixel-ratio: 3),
+        only screen 
+        and (device-width: 414px) 
+        and (device-height: 896px) 
+        and (-webkit-device-pixel-ratio: 2),
+        only screen 
+        and (device-width: 390px) 
+        and (device-height: 844px) 
+        and (-webkit-device-pixel-ratio: 3),
+        only screen 
+        and (device-width: 428px) 
+        and (device-height: 926px) 
+        and (-webkit-device-pixel-ratio: 3) {
+            /* iPhone X, XS, 11 Pro, 12, 13 Pro, 14 Pro 等全面屏设备 */
+            .container {
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-top: env(safe-area-inset-top);
+            }
+            
+            .joystick-area {
+                height: 120px; /* 更小的摇杆区域 */
+                min-height: 120px;
+            }
+            
+            .control-buttons {
+                margin-bottom: 8px;
+            }
+            
+            .status-panel {
+                height: 50px;
+            }
+        }
+        
+        /* 传感器显示样式 */
+        .sensor-panel {
+            background-color: rgba(0,0,0,0.7);
+            color: #fff;
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+        .sensor-badge {
+            display: inline-flex;
+            margin: 1px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            align-items: center;
+        }
+        .sensor-badge.safe {
+            background-color: #4caf50;
+        }
+        .sensor-badge.warning {
+            background-color: #ff9800;
+        }
+        .sensor-badge.danger {
+            background-color: #f44336;
+        }
+        .sensor-icon {
+            width: 12px;
+            height: 12px;
+            margin-right: 4px;
+            text-align: center;
+        }
+
+        /* 开关按钮样式 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 3px 0;
+            font-size: 12px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 30px;
+            height: 17px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 17px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 13px;
+            width: 13px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(13px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 视频区域 - 更小的视频区域 -->
+        <div class="video-container" style="padding-bottom: 40%;">
+            <img src="/video_feed" alt="机器人摄像头" class="video-feed" id="video-feed">
+            <div class="video-controls">
+                <button class="video-toggle" id="video-toggle">关闭</button>
+                <button class="video-toggle" id="video-restart" style="margin-left: 3px;">重启</button>
+                <span class="video-status" id="camera-type" style="margin-left: 3px; color: white; font-size: 10px;"></span>
+            </div>
+            
+            <!-- 传感器面板 -->
+            <div class="sensor-panel" id="sensor-panel">
+                <div class="sensor-badge" id="ultrasonic-badge">
+                    <span class="sensor-icon">⚡</span>
+                    <span id="ultrasonic-value">距离: 100cm</span>
+                </div>
+                <div class="sensor-badge" id="left-ir-badge">
+                    <span class="sensor-icon">←</span>
+                    <span id="left-ir-value">左侧: 安全</span>
+                </div>
+                <div class="sensor-badge" id="right-ir-badge">
+                    <span class="sensor-icon">→</span>
+                    <span id="right-ir-value">右侧: 安全</span>
+                </div>
+                <div class="switch-container">
+                    <span>自动避障:</span>
+                    <label class="switch">
+                        <input type="checkbox" id="avoidance-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 移动设备速度控制 - 仅在小屏幕上显示 -->
+        <div class="speed-control mobile-speed" style="display: none; margin: 5px 0; padding: 8px;">
+            <label for="speed-mobile" style="font-size: 12px;">速度: <span id="speed-value-mobile">50%</span></label>
+            <input type="range" id="speed-mobile" class="speed-slider" min="0" max="100" value="50">
+        </div>
+        
+        <div class="controls-container">
+            <!-- 左侧摇杆控制区 -->
+            <div class="joystick-area" id="joystick-zone">
+                <div class="joystick-label">移动控制</div>
+            </div>
+            
+            <!-- 右侧控制面板 -->
+            <div class="controls-panel">
+                <!-- 状态显示 -->
+                <div class="status-panel" id="status">
+                    系统就绪...
+                </div>
+                
+                <!-- 按钮控制 - 简化布局 -->
+                <div class="control-buttons">
+                    <button class="btn-control" id="forward-btn">前</button>
+                    <button class="btn-control btn-stop" id="stop-btn">停</button>
+                    <button class="btn-control" id="backward-btn">后</button>
+                    <button class="btn-control" id="left-btn">左</button>
+                    <button class="btn-control" id="speed-toggle-btn">速度</button>
+                    <button class="btn-control" id="right-btn">右</button>
+                </div>
+                
+                <!-- 速度控制 - 桌面版 -->
+                <div class="speed-control desktop-speed">
+                    <label for="speed" style="font-size: 14px;">速度控制: <span id="speed-value">50%</span></label>
+                    <input type="range" id="speed" class="speed-slider" min="0" max="100" value="50">
+                </div>
+                
+                <!-- 极简版帮助信息 -->
+                <div class="help-panel" style="margin-top: 5px; padding: 5px; background-color: #f8f9fa; border-radius: 8px; font-size: 12px;">
+                    <details>
+                        <summary style="font-weight: bold; cursor: pointer;">使用帮助</summary>
+                        <div style="margin-top: 5px; font-size: 11px;">
+                            <p style="margin: 3px 0"><strong>摇杆:</strong> 拖动控制方向</p>
+                            <p style="margin: 3px 0"><strong>按钮:</strong> 按住移动，松开停止</p>
+                            <p style="margin: 3px 0"><strong>方向:</strong> ↑↓←→↖↗↙↘↺↻</p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 状态更新函数
+        function updateStatus(message) {
+            const statusEl = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            statusEl.innerHTML = `[${timestamp}] ${message}<br>` + statusEl.innerHTML;
+        }
+        
+        // 命令发送函数
+        function sendCommand(command) {
+            updateStatus(`发送命令: ${command}`);
+            fetch('/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({command: command})
+            }).then(response => {
+                if (!response.ok) {
+                    updateStatus('命令发送失败');
+                }
+            }).catch(error => {
+                updateStatus(`错误: ${error.message}`);
+            });
+        }
+        
+        // 设置速度函数
+        function setSpeed(speed) {
+            document.getElementById('speed-value').textContent = speed + '%';
+            fetch('/speed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({speed: parseInt(speed)})
+            }).then(response => {
+                if (response.ok) {
+                    updateStatus(`速度设置为: ${speed}%`);
+                }
+            });
+        }
+        
+        // 初始化按钮事件
+        document.getElementById('forward-btn').addEventListener('touchstart', () => sendCommand('forward'));
+        document.getElementById('forward-btn').addEventListener('touchend', () => sendCommand('stop'));
+        document.getElementById('forward-btn').addEventListener('mousedown', () => sendCommand('forward'));
+        document.getElementById('forward-btn').addEventListener('mouseup', () => sendCommand('stop'));
+        
+        document.getElementById('backward-btn').addEventListener('touchstart', () => sendCommand('backward'));
+        document.getElementById('backward-btn').addEventListener('touchend', () => sendCommand('stop'));
+        document.getElementById('backward-btn').addEventListener('mousedown', () => sendCommand('backward'));
+        document.getElementById('backward-btn').addEventListener('mouseup', () => sendCommand('stop'));
+        
+        document.getElementById('left-btn').addEventListener('touchstart', () => sendCommand('left'));
+        document.getElementById('left-btn').addEventListener('touchend', () => sendCommand('stop'));
+        document.getElementById('left-btn').addEventListener('mousedown', () => sendCommand('left'));
+        document.getElementById('left-btn').addEventListener('mouseup', () => sendCommand('stop'));
+        
+        document.getElementById('right-btn').addEventListener('touchstart', () => sendCommand('right'));
+        document.getElementById('right-btn').addEventListener('touchend', () => sendCommand('stop'));
+        document.getElementById('right-btn').addEventListener('mousedown', () => sendCommand('right'));
+        document.getElementById('right-btn').addEventListener('mouseup', () => sendCommand('stop'));
+        
+        document.getElementById('stop-btn').addEventListener('click', () => sendCommand('stop'));
+        
+        document.getElementById('speed').addEventListener('change', (event) => {
+            setSpeed(event.target.value);
+        });
+        
+        // 初始化摇杆控制
+        const joystickOptions = {
+            zone: document.getElementById('joystick-zone'),
+            mode: 'static',
+            position: {left: '50%', top: '50%'},
+            color: 'blue',
+            size: 120,
+            lockX: false,
+            lockY: false
+        };
+        
+        const joystick = nipplejs.create(joystickOptions);
+        
+        let joystickTimer = null;
+        const joystickDelay = 100; // 发送指令的间隔(毫秒)
+        let lastDirection = null;
+        
+        joystick.on('start', function() {
+            updateStatus('摇杆控制启动');
+        });
+        
+        joystick.on('move', function(event, data) {
+            if (joystickTimer) {
+                return;
+            }
+            
+            const angle = data.angle.degree;
+            const force = Math.min(data.force, 1.0);
+            let direction;
+            
+            // 更精确的方向控制，8个方向
+            if (angle > 22.5 && angle <= 67.5) {
+                direction = 'forward_right';
+            } else if (angle > 67.5 && angle <= 112.5) {
+                direction = 'forward';
+            } else if (angle > 112.5 && angle <= 157.5) {
+                direction = 'forward_left';
+            } else if (angle > 157.5 && angle <= 202.5) {
+                direction = 'move_left';
+            } else if (angle > 202.5 && angle <= 247.5) {
+                direction = 'backward_left';
+            } else if (angle > 247.5 && angle <= 292.5) {
+                direction = 'backward';
+            } else if (angle > 292.5 && angle <= 337.5) {
+                direction = 'backward_right';
+            } else {
+                direction = 'move_right';
+            }
+            
+            if (direction !== lastDirection) {
+                sendCommand(direction);
+                lastDirection = direction;
+                
+                // 更新状态面板中的方向指示
+                const directionMap = {
+                    'forward': '↑',
+                    'backward': '↓',
+                    'move_left': '←',
+                    'move_right': '→',
+                    'forward_left': '↖',
+                    'forward_right': '↗',
+                    'backward_left': '↙',
+                    'backward_right': '↘',
+                    'left': '↺',
+                    'right': '↻'
+                };
+                
+                const directionSymbol = directionMap[direction] || '•';
+                updateStatus(`摇杆控制: ${directionSymbol} ${direction} (力度: ${Math.round(force * 100)}%)`);
+            }
+            
+            joystickTimer = setTimeout(function() {
+                joystickTimer = null;
+            }, joystickDelay);
+        });
+        
+        joystick.on('end', function() {
+            sendCommand('stop');
+            lastDirection = null;
+            updateStatus('摇杆控制停止');
+        });
+        
+        // 页面加载完成
+        window.addEventListener('load', function() {
+            updateStatus('系统已连接，等待命令...');
+            getCameraStatus();
+        });
+        
+        // 禁止页面缩放
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+        
+        // 视频控制功能
+        const videoFeed = document.getElementById('video-feed');
+        const videoToggle = document.getElementById('video-toggle');
+        const videoRestart = document.getElementById('video-restart');
+        const cameraType = document.getElementById('camera-type');
+        let videoEnabled = true;
+        
+        // 获取摄像头状态
+        function getCameraStatus() {
+            fetch('/camera/status')
+                .then(response => response.json())
+                .then(data => {
+                    cameraType.textContent = `摄像头类型: ${data.camera_type === 'picamera' ? '树莓派官方' : '普通USB'}`;
+                    updateStatus(`摄像头状态: ${data.enabled ? '开启' : '关闭'} (${data.camera_type})`);
+                })
+                .catch(error => {
+                    console.error('获取摄像头状态失败:', error);
+                });
+        }
+        
+        videoToggle.addEventListener('click', function() {
+            if (videoEnabled) {
+                // 关闭视频
+                videoFeed.style.display = 'none';
+                videoToggle.textContent = '开启视频';
+                videoEnabled = false;
+            } else {
+                // 开启视频
+                videoFeed.style.display = 'block';
+                videoToggle.textContent = '关闭视频';
+                videoEnabled = true;
+                // 重新加载视频流
+                videoFeed.src = '/video_feed?t=' + new Date().getTime();
+            }
+            
+            // 通知服务器切换摄像头状态
+            fetch('/camera/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  updateStatus(`摄像头状态: ${data.enabled ? '开启' : '关闭'}`);
+              });
+        });
+        
+        // 重启摄像头功能
+        videoRestart.addEventListener('click', function() {
+            updateStatus('正在重启摄像头...');
+            videoRestart.disabled = true;
+            videoRestart.textContent = '重启中...';
+            
+            fetch('/camera/restart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  updateStatus(`摄像头重启: ${data.message}`);
+                  // 更新摄像头类型显示
+                  cameraType.textContent = `摄像头类型: ${data.camera_type === 'picamera' ? '树莓派官方' : '普通USB'}`;
+                  // 重新加载视频流
+                  videoFeed.src = '/video_feed?t=' + new Date().getTime();
+                  videoRestart.disabled = false;
+                  videoRestart.textContent = '重启摄像头';
+              })
+              .catch(error => {
+                  updateStatus(`重启摄像头失败: ${error.message}`);
+                  videoRestart.disabled = false;
+                  videoRestart.textContent = '重启摄像头';
+              });
+        });
+        
+        // 处理视频加载错误
+        videoFeed.addEventListener('error', function() {
+            updateStatus('视频流加载失败，请检查摄像头连接');
+            // 不要立即隐藏，而是等待几秒后再尝试重新连接
+            setTimeout(() => {
+                if (videoEnabled) {
+                    updateStatus('尝试重新连接视频流...');
+                    videoFeed.src = '/video_feed?t=' + new Date().getTime();
+                }
+            }, 5000);
+        });
+
+        // 响应式界面调整
+        function adjustInterface() {
+            const isMobile = window.innerWidth < 768;
+            const mobileSpeed = document.querySelector('.mobile-speed');
+            const desktopSpeed = document.querySelector('.desktop-speed');
+            
+            if (isMobile) {
+                mobileSpeed.style.display = 'block';
+                desktopSpeed.style.display = 'none';
+            } else {
+                mobileSpeed.style.display = 'none';
+                desktopSpeed.style.display = 'block';
+            }
+        }
+
+        // 页面加载和窗口大小改变时调整界面
+        window.addEventListener('load', adjustInterface);
+        window.addEventListener('resize', adjustInterface);
+
+        // 同步两个速度滑块
+        const speedDesktop = document.getElementById('speed');
+        const speedMobile = document.getElementById('speed-mobile');
+        const speedValueDesktop = document.getElementById('speed-value');
+        const speedValueMobile = document.getElementById('speed-value-mobile');
+
+        speedDesktop.addEventListener('input', function(e) {
+            const value = e.target.value;
+            speedMobile.value = value;
+            speedValueDesktop.textContent = value + '%';
+            speedValueMobile.textContent = value + '%';
+        });
+
+        speedMobile.addEventListener('input', function(e) {
+            const value = e.target.value;
+            speedDesktop.value = value;
+            speedValueDesktop.textContent = value + '%';
+            speedValueMobile.textContent = value + '%';
+        });
+
+        speedMobile.addEventListener('change', function(e) {
+            setSpeed(e.target.value);
+        });
+
+        // 添加速度切换按钮功能
+        const speedToggleBtn = document.getElementById('speed-toggle-btn');
+        const mobileSpeed = document.querySelector('.mobile-speed');
+
+        speedToggleBtn.addEventListener('click', function() {
+            if (mobileSpeed.style.display === 'none' || mobileSpeed.style.display === '') {
+                mobileSpeed.style.display = 'block';
+                speedToggleBtn.style.backgroundColor = '#45a049';
+                updateStatus('打开速度控制面板');
+            } else {
+                mobileSpeed.style.display = 'none';
+                speedToggleBtn.style.backgroundColor = '#4287f5';
+                updateStatus('关闭速度控制面板');
+            }
+        });
+
+        // 添加传感器状态更新函数
+        let sensorUpdateTimer = null;
+
+        // 更新传感器状态
+        function updateSensors() {
+            fetch('/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新超声波距离
+                    const ultrasonicBadge = document.getElementById('ultrasonic-badge');
+                    const ultrasonicValue = document.getElementById('ultrasonic-value');
+                    const distance = data.ultrasonic;
+                    
+                    ultrasonicValue.textContent = `距离: ${distance}cm`;
+                    
+                    if (distance < 20) {
+                        ultrasonicBadge.className = 'sensor-badge danger';
+                    } else if (distance < 40) {
+                        ultrasonicBadge.className = 'sensor-badge warning';
+                    } else {
+                        ultrasonicBadge.className = 'sensor-badge safe';
+                    }
+                    
+                    // 更新左侧红外
+                    const leftIrBadge = document.getElementById('left-ir-badge');
+                    const leftIrValue = document.getElementById('left-ir-value');
+                    
+                    if (data.left_ir) {
+                        leftIrBadge.className = 'sensor-badge danger';
+                        leftIrValue.textContent = '左侧: 障碍';
+                    } else {
+                        leftIrBadge.className = 'sensor-badge safe';
+                        leftIrValue.textContent = '左侧: 安全';
+                    }
+                    
+                    // 更新右侧红外
+                    const rightIrBadge = document.getElementById('right-ir-badge');
+                    const rightIrValue = document.getElementById('right-ir-value');
+                    
+                    if (data.right_ir) {
+                        rightIrBadge.className = 'sensor-badge danger';
+                        rightIrValue.textContent = '右侧: 障碍';
+                    } else {
+                        rightIrBadge.className = 'sensor-badge safe';
+                        rightIrValue.textContent = '右侧: 安全';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取传感器数据失败:', error);
+                });
+        }
+
+        // 切换自动避障状态
+        function toggleObstacleAvoidance() {
+            fetch('/obstacle_avoidance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateStatus(`自动避障: ${data.enabled ? '开启' : '关闭'}`);
+            })
+            .catch(error => {
+                updateStatus(`切换自动避障失败: ${error.message}`);
+            });
+        }
+
+        // 绑定自动避障开关事件
+        document.getElementById('avoidance-toggle').addEventListener('change', function(e) {
+            toggleObstacleAvoidance();
+        });
+
+        // 页面加载时启动传感器更新
+        window.addEventListener('load', function() {
+            // 每500ms更新一次传感器数据
+            sensorUpdateTimer = setInterval(updateSensors, 500);
+            
+            // 获取系统状态，包括自动避障状态
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    // 设置自动避障开关状态
+                    document.getElementById('avoidance-toggle').checked = data.auto_avoidance;
+                });
+        });
+
+        // 页面关闭时停止传感器更新
+        window.addEventListener('beforeunload', function() {
+            if (sensorUpdateTimer) {
+                clearInterval(sensorUpdateTimer);
+            }
+        });
+    </script>
+</body>
+</html> 

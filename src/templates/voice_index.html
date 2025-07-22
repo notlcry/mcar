@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>机器人语音控制</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.9.0/dist/nipplejs.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            height: 100vh;
+            touch-action: none;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 100%;
+            height: 100%;
+            padding: 10px;
+        }
+        .title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .video-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .video-controls {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            z-index: 10;
+        }
+        .video-toggle {
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .joystick-area {
+            flex: 1;
+            position: relative;
+            background-color: rgba(200, 200, 200, 0.1);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .joystick-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .btn-control {
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            padding: 8px;
+            color: white;
+            background-color: #4287f5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        .btn-control:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-stop {
+            background-color: #f44336;
+            grid-column: 2;
+        }
+        
+        /* 语音控制相关样式 */
+        .voice-panel {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .voice-toggle-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .voice-off {
+            background-color: #6c757d;
+            color: white;
+        }
+        .voice-on {
+            background-color: #dc3545;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .voice-status {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .voice-commands {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+        .voice-commands h6 {
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #495057;
+        }
+        .command-group {
+            margin-bottom: 5px;
+        }
+        .command-group strong {
+            color: #007bff;
+            font-size: 11px;
+        }
+        .command-list {
+            font-size: 10px;
+            color: #6c757d;
+            margin-left: 10px;
+        }
+        
+        .status-panel {
+            background-color: #333;
+            color: #0f0;
+            font-family: monospace;
+            padding: 5px;
+            border-radius: 5px;
+            height: 60px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        .speed-control {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .speed-slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .feature-toggles {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toggle-off {
+            background-color: #6c757d;
+            color: white;
+        }
+        .toggle-on {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        @media (min-width: 768px) {
+            .controls-container {
+                flex-direction: row;
+            }
+            .joystick-area {
+                flex: 2;
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
+            .controls-panel {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            .title {
+                font-size: 1.2rem;
+                margin-bottom: 5px;
+            }
+            .controls-container {
+                height: auto;
+                min-height: 40vh;
+            }
+            .joystick-area {
+                height: 150px;
+                min-height: 150px;
+            }
+            .controls-panel {
+                margin-bottom: 60px;
+            }
+            .control-buttons {
+                gap: 5px;
+            }
+            .btn-control {
+                font-size: 14px;
+                padding: 8px;
+            }
+            .speed-control {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+            .speed-slider {
+                height: 25px;
+                margin: 5px 0;
+            }
+            .status-panel {
+                height: 60px;
+                padding: 5px;
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+            .voice-panel {
+                padding: 8px;
+            }
+            .voice-toggle-btn {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="title">🤖 机器人语音控制系统</h2>
+        
+        <div class="controls-container">
+            <div class="joystick-area" id="joystick">
+                <div class="joystick-label">触屏摇杆</div>
+            </div>
+            
+            <div class="controls-panel">
+                <!-- 视频显示 -->
+                <div class="video-container">
+                    <img src="{{ url_for('video_feed') }}" class="video-feed" alt="机器人视角">
+                    <div class="video-controls">
+                        <button class="video-toggle" id="videoToggle">📷</button>
+                    </div>
+                </div>
+                
+                <!-- 语音控制面板 -->
+                <div class="voice-panel">
+                    <button class="voice-toggle-btn voice-off" id="voiceToggle">
+                        <i class="fas fa-microphone-slash"></i> 点击启动语音控制
+                    </button>
+                    <div class="voice-status" id="voiceStatus">语音控制已关闭</div>
+                    
+                    <div class="voice-commands">
+                        <h6><i class="fas fa-info-circle"></i> 支持的语音命令：</h6>
+                        <div class="command-group">
+                            <strong>移动：</strong>
+                            <span class="command-list">向前、前进、向后、后退、左转、右转</span>
+                        </div>
+                        <div class="command-group">
+                            <strong>侧移：</strong>
+                            <span class="command-list">左移、右移</span>
+                        </div>
+                        <div class="command-group">
+                            <strong>控制：</strong>
+                            <span class="command-list">停止、快一点、慢一点</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 手动控制按钮 -->
+                <div class="control-buttons">
+                    <button class="btn-control" data-command="forward_left">↖</button>
+                    <button class="btn-control" data-command="forward">↑</button>
+                    <button class="btn-control" data-command="forward_right">↗</button>
+                    <button class="btn-control" data-command="left">←</button>
+                    <button class="btn-control btn-stop" data-command="stop">⏹</button>
+                    <button class="btn-control" data-command="right">→</button>
+                    <button class="btn-control" data-command="backward_left">↙</button>
+                    <button class="btn-control" data-command="backward">↓</button>
+                    <button class="btn-control" data-command="backward_right">↘</button>
+                </div>
+                
+                <!-- 功能切换 -->
+                <div class="feature-toggles">
+                    <button class="toggle-btn toggle-off" id="avoidanceToggle">
+                        <i class="fas fa-shield-alt"></i> 避障
+                    </button>
+                    <button class="toggle-btn toggle-off" id="cameraToggle">
+                        <i class="fas fa-video"></i> 摄像头
+                    </button>
+                </div>
+                
+                <!-- 速度控制 -->
+                <div class="speed-control">
+                    <label for="speedSlider" style="font-size: 14px; color: #333;">
+                        <i class="fas fa-tachometer-alt"></i> 速度: <span id="speedValue">50</span>%
+                    </label>
+                    <input type="range" class="speed-slider" id="speedSlider" 
+                           min="10" max="100" value="50" step="5">
+                </div>
+                
+                <!-- 状态显示 -->
+                <div class="status-panel" id="statusPanel">
+                    <div>系统启动中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量
+        let joystick = null;
+        let currentSpeed = 50;
+        let voiceEnabled = false;
+        let statusUpdateInterval = null;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initJoystick();
+            initEventListeners();
+            startStatusUpdates();
+            logStatus('系统启动完成');
+        });
+        
+        // 初始化虚拟摇杆
+        function initJoystick() {
+            const joystickElement = document.getElementById('joystick');
+            
+            joystick = nipplejs.create({
+                zone: joystickElement,
+                mode: 'static',
+                position: {left: '50%', top: '50%'},
+                color: '#4287f5',
+                size: 100,
+                threshold: 0.1,
+                fadeTime: 250,
+                multitouch: false,
+                maxNumberOfNipples: 1,
+                dataOnly: false,
+                restJoystick: true,
+                restOpacity: 0.5,
+                lockX: false,
+                lockY: false
+            });
+            
+            joystick.on('move', function(evt, data) {
+                handleJoystickMove(data);
+            });
+            
+            joystick.on('end', function() {
+                sendCommand('stop');
+            });
+        }
+        
+        // 处理摇杆移动
+        function handleJoystickMove(data) {
+            const angle = data.angle.degree;
+            const distance = Math.min(data.distance / 50, 1);
+            
+            if (distance < 0.3) return;
+            
+            let command = '';
+            
+            if (angle >= 337.5 || angle < 22.5) command = 'right';
+            else if (angle >= 22.5 && angle < 67.5) command = 'forward_right';
+            else if (angle >= 67.5 && angle < 112.5) command = 'forward';
+            else if (angle >= 112.5 && angle < 157.5) command = 'forward_left';
+            else if (angle >= 157.5 && angle < 202.5) command = 'left';
+            else if (angle >= 202.5 && angle < 247.5) command = 'backward_left';
+            else if (angle >= 247.5 && angle < 292.5) command = 'backward';
+            else if (angle >= 292.5 && angle < 337.5) command = 'backward_right';
+            
+            if (command) {
+                sendCommand(command, 0.1);
+            }
+        }
+        
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 控制按钮
+            document.querySelectorAll('.btn-control').forEach(button => {
+                let pressInterval = null;
+                
+                const startPress = () => {
+                    const command = button.dataset.command;
+                    sendCommand(command);
+                    if (command !== 'stop') {
+                        pressInterval = setInterval(() => sendCommand(command, 0.1), 100);
+                    }
+                };
+                
+                const endPress = () => {
+                    if (pressInterval) {
+                        clearInterval(pressInterval);
+                        pressInterval = null;
+                    }
+                    sendCommand('stop');
+                };
+                
+                button.addEventListener('mousedown', startPress);
+                button.addEventListener('mouseup', endPress);
+                button.addEventListener('mouseleave', endPress);
+                button.addEventListener('touchstart', startPress);
+                button.addEventListener('touchend', endPress);
+            });
+            
+            // 语音控制切换
+            document.getElementById('voiceToggle').addEventListener('click', toggleVoiceControl);
+            
+            // 速度滑块
+            document.getElementById('speedSlider').addEventListener('input', function() {
+                currentSpeed = parseInt(this.value);
+                document.getElementById('speedValue').textContent = currentSpeed;
+                setSpeed(currentSpeed);
+            });
+            
+            // 功能切换按钮
+            document.getElementById('avoidanceToggle').addEventListener('click', toggleObstacleAvoidance);
+            document.getElementById('cameraToggle').addEventListener('click', toggleCamera);
+            document.getElementById('videoToggle').addEventListener('click', toggleCamera);
+        }
+        
+        // 语音控制切换
+        async function toggleVoiceControl() {
+            const button = document.getElementById('voiceToggle');
+            const status = document.getElementById('voiceStatus');
+            
+            try {
+                const response = await fetch('/voice_control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    voiceEnabled = data.enabled;
+                    
+                    if (voiceEnabled) {
+                        button.className = 'voice-toggle-btn voice-on';
+                        button.innerHTML = '<i class="fas fa-microphone"></i> 语音控制中...';
+                        status.textContent = '正在监听语音命令';
+                        logStatus('语音控制已启动');
+                    } else {
+                        button.className = 'voice-toggle-btn voice-off';
+                        button.innerHTML = '<i class="fas fa-microphone-slash"></i> 点击启动语音控制';
+                        status.textContent = '语音控制已关闭';
+                        logStatus('语音控制已停止');
+                    }
+                } else {
+                    logStatus('语音控制切换失败: ' + data.message);
+                    alert('语音控制切换失败: ' + data.message);
+                }
+            } catch (error) {
+                logStatus('语音控制错误: ' + error.message);
+                console.error('Voice control error:', error);
+            }
+        }
+        
+        // 发送控制命令
+        async function sendCommand(command, duration = 0) {
+            try {
+                const response = await fetch('/control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command: command, duration: duration})
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    logStatus(`执行命令: ${command}`);
+                }
+            } catch (error) {
+                console.error('Control error:', error);
+            }
+        }
+        
+        // 设置速度
+        async function setSpeed(speed) {
+            try {
+                const response = await fetch('/speed', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({speed: speed})
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    logStatus(`速度设置为: ${speed}%`);
+                }
+            } catch (error) {
+                console.error('Speed error:', error);
+            }
+        }
+        
+        // 切换避障
+        async function toggleObstacleAvoidance() {
+            const button = document.getElementById('avoidanceToggle');
+            
+            try {
+                const response = await fetch('/obstacle_avoidance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.enabled) {
+                        button.className = 'toggle-btn toggle-on';
+                        button.innerHTML = '<i class="fas fa-shield-alt"></i> 避障开';
+                        logStatus('自动避障已启用');
+                    } else {
+                        button.className = 'toggle-btn toggle-off';
+                        button.innerHTML = '<i class="fas fa-shield-alt"></i> 避障关';
+                        logStatus('自动避障已禁用');
+                    }
+                }
+            } catch (error) {
+                console.error('Avoidance toggle error:', error);
+            }
+        }
+        
+        // 切换摄像头
+        async function toggleCamera() {
+            const button = document.getElementById('cameraToggle');
+            
+            try {
+                const response = await fetch('/camera/toggle', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.enabled) {
+                        button.className = 'toggle-btn toggle-on';
+                        button.innerHTML = '<i class="fas fa-video"></i> 摄像头开';
+                        logStatus('摄像头已启用');
+                    } else {
+                        button.className = 'toggle-btn toggle-off';
+                        button.innerHTML = '<i class="fas fa-video"></i> 摄像头关';
+                        logStatus('摄像头已禁用');
+                    }
+                }
+            } catch (error) {
+                console.error('Camera toggle error:', error);
+            }
+        }
+        
+        // 状态更新
+        function startStatusUpdates() {
+            statusUpdateInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/status');
+                    const data = await response.json();
+                    
+                    // 更新按钮状态
+                    updateToggleButton('avoidanceToggle', data.auto_avoidance, '避障');
+                    updateToggleButton('cameraToggle', true, '摄像头'); // 假设摄像头总是开启的
+                    
+                    // 更新语音控制状态
+                    if (data.voice_control !== voiceEnabled) {
+                        voiceEnabled = data.voice_control;
+                        updateVoiceButton();
+                    }
+                    
+                } catch (error) {
+                    console.error('Status update error:', error);
+                }
+            }, 2000);
+        }
+        
+        function updateToggleButton(buttonId, enabled, label) {
+            const button = document.getElementById(buttonId);
+            if (enabled) {
+                button.className = 'toggle-btn toggle-on';
+                button.innerHTML = `<i class="fas fa-${buttonId === 'avoidanceToggle' ? 'shield-alt' : 'video'}"></i> ${label}开`;
+            } else {
+                button.className = 'toggle-btn toggle-off';
+                button.innerHTML = `<i class="fas fa-${buttonId === 'avoidanceToggle' ? 'shield-alt' : 'video'}"></i> ${label}关`;
+            }
+        }
+        
+        function updateVoiceButton() {
+            const button = document.getElementById('voiceToggle');
+            const status = document.getElementById('voiceStatus');
+            
+            if (voiceEnabled) {
+                button.className = 'voice-toggle-btn voice-on';
+                button.innerHTML = '<i class="fas fa-microphone"></i> 语音控制中...';
+                status.textContent = '正在监听语音命令';
+            } else {
+                button.className = 'voice-toggle-btn voice-off';
+                button.innerHTML = '<i class="fas fa-microphone-slash"></i> 点击启动语音控制';
+                status.textContent = '语音控制已关闭';
+            }
+        }
+        
+        // 状态日志
+        function logStatus(message) {
+            const panel = document.getElementById('statusPanel');
+            const time = new Date().toLocaleTimeString();
+            panel.innerHTML += `<div>[${time}] ${message}</div>`;
+            panel.scrollTop = panel.scrollHeight;
+        }
+        
+        // 防止页面缩放
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gesturechange', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gestureend', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html> 
