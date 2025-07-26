@@ -661,7 +661,7 @@ def toggle_ai_conversation():
                 logger.info("个性管理器已初始化")
             
             if not ai_conversation_manager:
-                ai_conversation_manager = AIConversationManager(robot=clbrobot, safety_manager=safety_manager)
+                ai_conversation_manager = AIConversationManager(robot_controller=clbrobot, safety_manager=safety_manager)
                 logger.info("AI对话管理器已初始化")
             
             if not enhanced_voice_controller:
