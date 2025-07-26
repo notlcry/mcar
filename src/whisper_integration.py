@@ -4,13 +4,26 @@ Whisper语音识别集成模块
 提供本地语音识别功能，支持中文识别
 """
 
-import whisper
 import tempfile
 import wave
 import struct
 import logging
 import os
 from typing import Optional
+
+# 尝试导入whisper，如果失败则使用备选方案
+try:
+    import whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    logging.warning("Whisper模块未安装，将禁用Whisper语音识别功能")
+    WHISPER_AVAILABLE = False
+    # 创建虚拟whisper模块
+    class MockWhisper:
+        @staticmethod
+        def load_model(*args, **kwargs):
+            raise RuntimeError("Whisper不可用")
+    whisper = MockWhisper()
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +40,11 @@ class WhisperRecognizer:
     
     def load_model(self):
         """加载Whisper模型"""
+        if not WHISPER_AVAILABLE:
+            logger.warning("Whisper不可用，跳过模型加载")
+            self.model = None
+            return
+            
         try:
             logger.info(f"正在加载Whisper {self.model_size} 模型...")
             self.model = whisper.load_model(self.model_size)
