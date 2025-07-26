@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class AIConfig:
     """AI配置"""
     gemini_api_key: str = ""
-    model_name: str = "gemini-1.5-flash"
+    model_name: str = "gemini-2.0-flash-exp"
     temperature: float = 0.7
     max_output_tokens: int = 200
     personality_prompt: str = """
