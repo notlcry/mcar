@@ -31,16 +31,48 @@ class WakeWordDetector:
         """
         self.access_key = access_key or os.getenv('PICOVOICE_ACCESS_KEY')
         
-        # 如果没有访问密钥，使用内置关键词
-        if not self.access_key:
-            logger.warning("未设置PICOVOICE_ACCESS_KEY，将使用内置关键词")
-            self.keyword_paths = None
-            self.keywords = [pvporcupine.KEYWORDS['computer']]  # 使用内置的"computer"
+        # 检查自定义唤醒词文件
+        if keyword_paths:
+            # 验证文件存在
+            valid_paths = []
+            for path in keyword_paths:
+                if os.path.exists(path):
+                    valid_paths.append(path)
+                    logger.info(f"找到自定义唤醒词文件: {path}")
+                else:
+                    logger.warning(f"唤醒词文件不存在: {path}")
+            
+            if valid_paths and self.access_key and self.access_key != 'your_picovoice_access_key_here':
+                self.keyword_paths = valid_paths
+                self.keywords = None
+                logger.info(f"将使用 {len(valid_paths)} 个自定义唤醒词")
+            else:
+                logger.warning("自定义唤醒词配置无效，使用内置关键词")
+                self.keyword_paths = None
+                self.keywords = [pvporcupine.KEYWORDS['computer']]
         else:
-            self.keyword_paths = keyword_paths
-            self.keywords = None
+            # 尝试自动查找自定义唤醒词
+            wake_words_dir = '../wake_words'
+            if os.path.exists(wake_words_dir):
+                ppn_files = [os.path.join(wake_words_dir, f) for f in os.listdir(wake_words_dir) if f.endswith('.ppn')]
+                if ppn_files and self.access_key and self.access_key != 'your_picovoice_access_key_here':
+                    self.keyword_paths = ppn_files
+                    self.keywords = None
+                    logger.info(f"自动发现 {len(ppn_files)} 个自定义唤醒词文件")
+                else:
+                    self.keyword_paths = None
+                    self.keywords = [pvporcupine.KEYWORDS['computer']]
+            else:
+                # 如果没有访问密钥或自定义文件，使用内置关键词
+                logger.warning("未设置PICOVOICE_ACCESS_KEY或未找到自定义唤醒词，将使用内置关键词")
+                self.keyword_paths = None
+                self.keywords = [pvporcupine.KEYWORDS['computer']]
         
-        self.sensitivities = sensitivities or [0.5]  # 默认灵敏度
+        # 设置灵敏度
+        if self.keyword_paths:
+            self.sensitivities = sensitivities or [0.5] * len(self.keyword_paths)
+        else:
+            self.sensitivities = sensitivities or [0.5]
         
         # Porcupine实例
         self.porcupine = None
