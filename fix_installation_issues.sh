@@ -18,7 +18,7 @@ pip3 uninstall -y google-generativeai grpcio grpcio-status
 # 安装兼容的版本
 echo "   安装兼容版本..."
 pip3 install --no-cache-dir google-generativeai==0.3.2
-pip3 install --no-cache-dir grpcio==1.48.2
+pip3 install --no-cache-dir grpcio==1.44.0
 
 echo "   ✅ Google Generative AI修复完成"
 echo
