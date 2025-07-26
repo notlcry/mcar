@@ -190,9 +190,13 @@ class EnhancedVoiceController(VoiceController):
         if not self.conversation_mode:
             return
             
+        logger.info(f"🎤 检测到唤醒词！索引: {keyword_index}")
+        logger.info("🤖 AI桌宠已唤醒，准备开始对话...")
+        
         self.wake_word_detected = True
         self.last_interaction_time = time.time()
         
+        logger.info("✅ 唤醒状态已设置，开始语音交互模式")
         logger.info(f"检测到唤醒词，索引: {keyword_index}")
         
         # 提供即时音频确认（在1秒内）
@@ -283,6 +287,7 @@ class EnhancedVoiceController(VoiceController):
     def _process_conversation_audio(self, audio):
         """处理对话模式下的音频"""
         try:
+            logger.info("🎙️ 开始处理录音音频...")
             # 显示思考状态
             if self.expression_controller:
                 self.expression_controller.show_thinking_animation()

@@ -78,8 +78,14 @@ class AIConversationManager:
         
         # Gemini API配置
         self.api_key = self.ai_config.gemini_api_key
+        
+        # 如果配置中没有API密钥，尝试从环境变量加载
         if not self.api_key:
-            logger.warning("未找到Gemini API密钥，请在配置中设置")
+            self.api_key = os.getenv('GEMINI_API_KEY')
+            if self.api_key:
+                logger.info("从环境变量加载Gemini API密钥")
+            else:
+                logger.warning("未找到Gemini API密钥，请在配置中设置")
         
         # 初始化Gemini
         self.model = None
@@ -138,7 +144,8 @@ class AIConversationManager:
                     system_instruction=self.personality_prompt
                 )
                 
-                logger.info("Gemini API初始化成功")
+                logger.info(f"Gemini API初始化成功，使用模型: {self.ai_config.model_name}")
+                logger.info(f"API密钥: {self.api_key[:20]}..." if self.api_key else "API密钥: 未设置")
                 return True
             else:
                 logger.error("Gemini API密钥未设置")
