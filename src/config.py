@@ -76,11 +76,45 @@ class ConfigManager:
         self.personality_config = PersonalityConfig()
         self.system_config = SystemConfig()
         
+        # 自动加载环境变量文件
+        self._load_env_file()
+        
         # 从环境变量加载
         self._load_from_env()
         
         # 从配置文件加载
         self._load_from_file()
+    
+    def _load_env_file(self):
+        """自动加载环境变量文件"""
+        env_files = ['.ai_pet_env', '../.ai_pet_env', '~/.ai_pet_env']
+        
+        for env_file in env_files:
+            env_path = os.path.expanduser(env_file)
+            if os.path.exists(env_path):
+                try:
+                    with open(env_path, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            # 跳过注释和空行
+                            if line and not line.startswith('#'):
+                                # 处理 export VAR=value 格式
+                                if line.startswith('export '):
+                                    line = line[7:]  # 移除 'export '
+                                
+                                # 分割变量名和值
+                                if '=' in line:
+                                    key, value = line.split('=', 1)
+                                    # 移除引号
+                                    value = value.strip('"\'')
+                                    # 设置环境变量
+                                    os.environ[key] = value
+                    
+                    logger.info(f"已加载环境变量文件: {env_path}")
+                    break
+                    
+                except Exception as e:
+                    logger.warning(f"加载环境变量文件失败 {env_path}: {e}")
     
     def _load_from_env(self):
         """从环境变量加载配置"""

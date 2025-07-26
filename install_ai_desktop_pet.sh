@@ -189,8 +189,14 @@ install_python_dependencies() {
         source .venv/bin/activate
     fi
     
-    # 安装基础依赖
-    pip install -r src/requirements.txt
+    # 检查是否有树莓派专用依赖文件
+    if [[ -f "requirements_raspberry_pi.txt" ]]; then
+        log_info "使用树莓派专用依赖文件"
+        pip install -r requirements_raspberry_pi.txt
+    else
+        log_info "使用通用依赖文件"
+        pip install -r src/requirements.txt
+    fi
     
     # 安装额外的AI桌宠依赖
     local ai_packages=(
