@@ -1,0 +1,61 @@
+[Unit]
+Description=AI Desktop Pet Robot Control Service
+Documentation=file:///home/%i/mcar/USER_GUIDE.md
+After=network-online.target sound.target
+Wants=network-online.target
+Requires=sound.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/home/%i/mcar/src
+Environment=PATH=/home/%i/mcar/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=VIRTUAL_ENV=/home/%i/mcar/.venv
+Environment=PYTHONPATH=/home/%i/mcar/src
+Environment=AI_PET_HOME=/home/%i/mcar
+EnvironmentFile=-/home/%i/.ai_pet_env
+
+# 启动前准备
+ExecStartPre=/bin/bash -c 'source /home/%i/.ai_pet_env || true'
+ExecStartPre=/bin/bash -c 'cd /home/%i/mcar && source .venv/bin/activate'
+
+# 主程序启动
+ExecStart=/home/%i/mcar/.venv/bin/python robot_voice_web_control.py
+
+# 停止命令
+ExecStop=/bin/kill -TERM $MAINPID
+ExecStopPost=/bin/bash -c 'pkill -f "robot_voice_web_control.py" || true'
+
+# 重启策略
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# 超时设置
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# 输出设置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ai-desktop-pet
+
+# 资源限制
+MemoryMax=1G
+CPUQuota=80%
+TasksMax=100
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/%i/mcar/src/data
+
+# 权限设置
+SupplementaryGroups=audio video i2c gpio spi
+
+[Install]
+WantedBy=multi-user.target

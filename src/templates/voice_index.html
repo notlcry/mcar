@@ -115,6 +115,220 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 10px;
         }
+        
+        /* AI对话控制面板样式 */
+        .ai-panel {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        
+        .ai-toggle-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .ai-off {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .ai-on {
+            background-color: #28a745;
+            color: white;
+            animation: ai-pulse 3s infinite;
+        }
+        
+        @keyframes ai-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .ai-status {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* 情感状态显示样式 */
+        .emotion-display {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .emotion-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        
+        .emotion-happy { background-color: #ffeaa7; color: #2d3436; }
+        .emotion-excited { background-color: #fd79a8; color: white; }
+        .emotion-sad { background-color: #74b9ff; color: white; }
+        .emotion-confused { background-color: #a29bfe; color: white; }
+        .emotion-thinking { background-color: #fdcb6e; color: #2d3436; }
+        .emotion-neutral { background-color: #ddd; color: #2d3436; }
+        .emotion-angry { background-color: #e17055; color: white; }
+        .emotion-surprised { background-color: #00b894; color: white; }
+        
+        /* 对话历史样式 */
+        .conversation-history {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .conversation-entry {
+            margin-bottom: 8px;
+            padding: 6px;
+            border-radius: 6px;
+            background-color: white;
+            border-left: 3px solid #007bff;
+        }
+        
+        .user-message {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 11px;
+        }
+        
+        .ai-message {
+            color: #28a745;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        
+        .message-time {
+            color: #6c757d;
+            font-size: 10px;
+            float: right;
+        }
+        
+        /* 个性设置样式 */
+        .personality-panel {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        
+        .personality-slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .personality-trait {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .trait-label {
+            flex: 1;
+            color: #495057;
+        }
+        
+        .trait-value {
+            color: #007bff;
+            font-weight: bold;
+            margin-left: 10px;
+            min-width: 30px;
+        }
+        
+        /* 语音选项样式 */
+        .voice-options {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+        
+        .voice-select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* AI响应状态指示器 */
+        .ai-response-indicator {
+            display: none;
+            text-align: center;
+            padding: 8px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #856404;
+        }
+        
+        .ai-response-indicator.active {
+            display: block;
+            animation: thinking-pulse 1.5s infinite;
+        }
+        
+        @keyframes thinking-pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        /* 对话输入框样式 */
+        .chat-input-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .chat-send-btn {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .chat-send-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .chat-send-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
         .voice-toggle-btn {
             width: 100%;
             padding: 10px;
@@ -297,6 +511,47 @@
                     </div>
                 </div>
                 
+                <!-- AI对话控制面板 -->
+                <div class="ai-panel">
+                    <button class="ai-toggle-btn ai-off" id="aiToggle">
+                        <i class="fas fa-robot"></i> 启动AI桌宠模式
+                    </button>
+                    <div class="ai-status" id="aiStatus">AI桌宠模式已关闭</div>
+                    
+                    <!-- 情感状态显示 -->
+                    <div class="emotion-display" id="emotionDisplay" style="display: none;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">当前情感状态</div>
+                        <div id="emotionIndicator" class="emotion-indicator emotion-neutral">中性</div>
+                        <div style="font-size: 10px; color: #999; margin-top: 4px;">
+                            强度: <span id="emotionIntensity">0%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- AI响应状态指示器 -->
+                    <div class="ai-response-indicator" id="aiResponseIndicator">
+                        <i class="fas fa-brain"></i> AI正在思考中...
+                    </div>
+                    
+                    <!-- 对话输入框 -->
+                    <div class="chat-input-container" id="chatInputContainer" style="display: none;">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="输入消息与AI对话..." maxlength="200">
+                        <button class="chat-send-btn" id="chatSendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 对话历史 -->
+                    <div class="conversation-history" id="conversationHistory" style="display: none;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 6px; text-align: center;">
+                            <i class="fas fa-history"></i> 对话历史
+                            <button style="float: right; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 10px;" id="clearHistoryBtn">
+                                <i class="fas fa-trash"></i> 清空
+                            </button>
+                        </div>
+                        <div id="conversationEntries"></div>
+                    </div>
+                </div>
+                
                 <!-- 语音控制面板 -->
                 <div class="voice-panel">
                     <button class="voice-toggle-btn voice-off" id="voiceToggle">
@@ -318,6 +573,55 @@
                             <strong>控制：</strong>
                             <span class="command-list">停止、快一点、慢一点</span>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- 个性设置面板 -->
+                <div class="personality-panel" id="personalityPanel" style="display: none;">
+                    <h6 style="margin-bottom: 10px; font-size: 12px; color: #495057;">
+                        <i class="fas fa-user-cog"></i> 个性设置
+                    </h6>
+                    
+                    <div class="personality-trait">
+                        <span class="trait-label">友好度</span>
+                        <input type="range" class="personality-slider" id="friendlinessSlider" 
+                               min="0" max="100" value="80" step="5">
+                        <span class="trait-value" id="friendlinessValue">80%</span>
+                    </div>
+                    
+                    <div class="personality-trait">
+                        <span class="trait-label">活跃度</span>
+                        <input type="range" class="personality-slider" id="energySlider" 
+                               min="0" max="100" value="70" step="5">
+                        <span class="trait-value" id="energyValue">70%</span>
+                    </div>
+                    
+                    <div class="personality-trait">
+                        <span class="trait-label">好奇心</span>
+                        <input type="range" class="personality-slider" id="curiositySlider" 
+                               min="0" max="100" value="60" step="5">
+                        <span class="trait-value" id="curiosityValue">60%</span>
+                    </div>
+                    
+                    <div class="personality-trait">
+                        <span class="trait-label">顽皮度</span>
+                        <input type="range" class="personality-slider" id="playfulnessSlider" 
+                               min="0" max="100" value="90" step="5">
+                        <span class="trait-value" id="playfulnessValue">90%</span>
+                    </div>
+                    
+                    <!-- 语音选项 -->
+                    <div class="voice-options">
+                        <label style="font-size: 11px; color: #495057; margin-bottom: 4px; display: block;">
+                            <i class="fas fa-volume-up"></i> 语音角色选择
+                        </label>
+                        <select class="voice-select" id="voiceSelect">
+                            <option value="zh-CN-XiaoxiaoNeural">晓晓 (温柔女声)</option>
+                            <option value="zh-CN-YunxiNeural">云希 (活泼男声)</option>
+                            <option value="zh-CN-YunyangNeural">云扬 (成熟男声)</option>
+                            <option value="zh-CN-XiaoyiNeural">晓伊 (甜美女声)</option>
+                            <option value="zh-CN-YunjianNeural">云健 (稳重男声)</option>
+                        </select>
                     </div>
                 </div>
                 
@@ -366,12 +670,24 @@
         let joystick = null;
         let currentSpeed = 50;
         let voiceEnabled = false;
+        let aiEnabled = false;
+        let currentSessionId = null;
         let statusUpdateInterval = null;
+        let emotionUpdateInterval = null;
+        let conversationHistory = [];
+        let personalitySettings = {
+            friendliness: 80,
+            energy: 70,
+            curiosity: 60,
+            playfulness: 90
+        };
+        let currentVoice = 'zh-CN-XiaoxiaoNeural';
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             initJoystick();
             initEventListeners();
+            initPersonalitySettings();
             startStatusUpdates();
             logStatus('系统启动完成');
         });
@@ -460,6 +776,29 @@
             
             // 语音控制切换
             document.getElementById('voiceToggle').addEventListener('click', toggleVoiceControl);
+            
+            // AI对话控制切换
+            document.getElementById('aiToggle').addEventListener('click', toggleAIConversation);
+            
+            // 对话输入处理
+            document.getElementById('chatInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+            document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+            
+            // 清空对话历史
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearConversationHistory);
+            
+            // 个性设置滑块
+            document.getElementById('friendlinessSlider').addEventListener('input', updatePersonalityTrait);
+            document.getElementById('energySlider').addEventListener('input', updatePersonalityTrait);
+            document.getElementById('curiositySlider').addEventListener('input', updatePersonalityTrait);
+            document.getElementById('playfulnessSlider').addEventListener('input', updatePersonalityTrait);
+            
+            // 语音选择
+            document.getElementById('voiceSelect').addEventListener('change', updateVoiceSelection);
             
             // 速度滑块
             document.getElementById('speedSlider').addEventListener('input', function() {
@@ -618,6 +957,12 @@
                         updateVoiceButton();
                     }
                     
+                    // 更新AI对话状态
+                    if (data.ai_conversation !== aiEnabled) {
+                        aiEnabled = data.ai_conversation;
+                        updateAIButton();
+                    }
+                    
                 } catch (error) {
                     console.error('Status update error:', error);
                 }
@@ -650,12 +995,382 @@
             }
         }
         
+        function updateAIButton() {
+            const button = document.getElementById('aiToggle');
+            const status = document.getElementById('aiStatus');
+            const emotionDisplay = document.getElementById('emotionDisplay');
+            const chatContainer = document.getElementById('chatInputContainer');
+            const historyContainer = document.getElementById('conversationHistory');
+            const personalityPanel = document.getElementById('personalityPanel');
+            
+            if (aiEnabled) {
+                button.className = 'ai-toggle-btn ai-on';
+                button.innerHTML = '<i class="fas fa-robot"></i> AI桌宠模式运行中';
+                status.textContent = 'AI桌宠已激活，可以开始对话';
+                
+                // 显示AI相关界面元素
+                emotionDisplay.style.display = 'block';
+                chatContainer.style.display = 'flex';
+                historyContainer.style.display = 'block';
+                personalityPanel.style.display = 'block';
+            } else {
+                button.className = 'ai-toggle-btn ai-off';
+                button.innerHTML = '<i class="fas fa-robot"></i> 启动AI桌宠模式';
+                status.textContent = 'AI桌宠模式已关闭';
+                
+                // 隐藏AI相关界面元素
+                emotionDisplay.style.display = 'none';
+                chatContainer.style.display = 'none';
+                historyContainer.style.display = 'none';
+                personalityPanel.style.display = 'none';
+            }
+        }
+        
         // 状态日志
         function logStatus(message) {
             const panel = document.getElementById('statusPanel');
             const time = new Date().toLocaleTimeString();
             panel.innerHTML += `<div>[${time}] ${message}</div>`;
             panel.scrollTop = panel.scrollHeight;
+        }
+        
+        // AI对话控制切换
+        async function toggleAIConversation() {
+            const button = document.getElementById('aiToggle');
+            const status = document.getElementById('aiStatus');
+            const emotionDisplay = document.getElementById('emotionDisplay');
+            const chatContainer = document.getElementById('chatInputContainer');
+            const historyContainer = document.getElementById('conversationHistory');
+            const personalityPanel = document.getElementById('personalityPanel');
+            
+            try {
+                const response = await fetch('/ai_conversation', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    aiEnabled = data.enabled;
+                    currentSessionId = data.session_id;
+                    
+                    if (aiEnabled) {
+                        button.className = 'ai-toggle-btn ai-on';
+                        button.innerHTML = '<i class="fas fa-robot"></i> AI桌宠模式运行中';
+                        status.textContent = 'AI桌宠已激活，可以开始对话';
+                        
+                        // 显示AI相关界面元素
+                        emotionDisplay.style.display = 'block';
+                        chatContainer.style.display = 'flex';
+                        historyContainer.style.display = 'block';
+                        personalityPanel.style.display = 'block';
+                        
+                        // 开始情感状态更新
+                        startEmotionUpdates();
+                        
+                        // 加载对话历史
+                        loadConversationHistory();
+                        
+                        logStatus('AI桌宠模式已启动，会话ID: ' + currentSessionId);
+                    } else {
+                        button.className = 'ai-toggle-btn ai-off';
+                        button.innerHTML = '<i class="fas fa-robot"></i> 启动AI桌宠模式';
+                        status.textContent = 'AI桌宠模式已关闭';
+                        
+                        // 隐藏AI相关界面元素
+                        emotionDisplay.style.display = 'none';
+                        chatContainer.style.display = 'none';
+                        historyContainer.style.display = 'none';
+                        personalityPanel.style.display = 'none';
+                        
+                        // 停止情感状态更新
+                        stopEmotionUpdates();
+                        
+                        currentSessionId = null;
+                        logStatus('AI桌宠模式已停止');
+                    }
+                } else {
+                    logStatus('AI桌宠模式切换失败: ' + data.message);
+                    alert('AI桌宠模式切换失败: ' + data.message);
+                }
+            } catch (error) {
+                logStatus('AI桌宠模式错误: ' + error.message);
+                console.error('AI conversation error:', error);
+            }
+        }
+        
+        // 发送聊天消息
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('chatSendBtn');
+            const indicator = document.getElementById('aiResponseIndicator');
+            
+            const message = input.value.trim();
+            if (!message || !aiEnabled) return;
+            
+            // 禁用输入和按钮
+            input.disabled = true;
+            sendBtn.disabled = true;
+            indicator.classList.add('active');
+            
+            try {
+                const response = await fetch('/ai_chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // 添加到对话历史
+                    addConversationEntry(message, data.response, data.emotion, data.timestamp);
+                    
+                    // 更新情感状态
+                    updateEmotionDisplay(data.emotion);
+                    
+                    // 清空输入框
+                    input.value = '';
+                    
+                    logStatus(`AI回复: ${data.response.substring(0, 50)}...`);
+                } else {
+                    logStatus('AI对话失败: ' + data.message);
+                    alert('AI对话失败: ' + data.message);
+                }
+            } catch (error) {
+                logStatus('发送消息错误: ' + error.message);
+                console.error('Chat error:', error);
+            } finally {
+                // 重新启用输入和按钮
+                input.disabled = false;
+                sendBtn.disabled = false;
+                indicator.classList.remove('active');
+                input.focus();
+            }
+        }
+        
+        // 添加对话条目到历史
+        function addConversationEntry(userMessage, aiResponse, emotion, timestamp) {
+            const entriesContainer = document.getElementById('conversationEntries');
+            const time = new Date(timestamp).toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = 'conversation-entry';
+            entry.innerHTML = `
+                <div class="message-time">${time}</div>
+                <div class="user-message">👤 ${userMessage}</div>
+                <div class="ai-message">🤖 ${aiResponse}</div>
+                <div style="font-size: 10px; color: #999; margin-top: 2px;">
+                    情感: <span class="emotion-indicator emotion-${emotion}" style="padding: 1px 4px;">${getEmotionText(emotion)}</span>
+                </div>
+            `;
+            
+            entriesContainer.appendChild(entry);
+            entriesContainer.scrollTop = entriesContainer.scrollHeight;
+            
+            // 限制历史条目数量
+            while (entriesContainer.children.length > 20) {
+                entriesContainer.removeChild(entriesContainer.firstChild);
+            }
+        }
+        
+        // 加载对话历史
+        async function loadConversationHistory() {
+            if (!currentSessionId) return;
+            
+            try {
+                const response = await fetch(`/session/${currentSessionId}/history`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const entriesContainer = document.getElementById('conversationEntries');
+                    entriesContainer.innerHTML = '';
+                    
+                    data.history.forEach(entry => {
+                        addConversationEntry(
+                            entry.user_input,
+                            entry.ai_response,
+                            entry.emotion,
+                            entry.timestamp
+                        );
+                    });
+                }
+            } catch (error) {
+                console.error('Load history error:', error);
+            }
+        }
+        
+        // 清空对话历史
+        async function clearConversationHistory() {
+            if (!confirm('确定要清空对话历史吗？')) return;
+            
+            try {
+                const response = await fetch('/clear_history', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: currentSessionId})
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    document.getElementById('conversationEntries').innerHTML = '';
+                    logStatus('对话历史已清空');
+                }
+            } catch (error) {
+                console.error('Clear history error:', error);
+            }
+        }
+        
+        // 开始情感状态更新
+        function startEmotionUpdates() {
+            if (emotionUpdateInterval) return;
+            
+            emotionUpdateInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/ai_emotion');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        updateEmotionDisplay(data.emotion.primary, data.emotion.intensity);
+                    }
+                } catch (error) {
+                    console.error('Emotion update error:', error);
+                }
+            }, 3000);
+        }
+        
+        // 停止情感状态更新
+        function stopEmotionUpdates() {
+            if (emotionUpdateInterval) {
+                clearInterval(emotionUpdateInterval);
+                emotionUpdateInterval = null;
+            }
+        }
+        
+        // 更新情感显示
+        function updateEmotionDisplay(emotion, intensity = 0) {
+            const indicator = document.getElementById('emotionIndicator');
+            const intensitySpan = document.getElementById('emotionIntensity');
+            
+            // 移除所有情感类
+            indicator.className = 'emotion-indicator';
+            indicator.classList.add(`emotion-${emotion}`);
+            indicator.textContent = getEmotionText(emotion);
+            
+            if (typeof intensity === 'number') {
+                intensitySpan.textContent = Math.round(intensity * 100) + '%';
+            }
+        }
+        
+        // 获取情感文本
+        function getEmotionText(emotion) {
+            const emotionMap = {
+                'happy': '开心',
+                'excited': '兴奋',
+                'sad': '难过',
+                'confused': '困惑',
+                'thinking': '思考',
+                'neutral': '中性',
+                'angry': '生气',
+                'surprised': '惊讶'
+            };
+            return emotionMap[emotion] || '未知';
+        }
+        
+        // 初始化个性设置
+        function initPersonalitySettings() {
+            // 设置滑块初始值
+            Object.keys(personalitySettings).forEach(trait => {
+                const slider = document.getElementById(trait + 'Slider');
+                const valueSpan = document.getElementById(trait + 'Value');
+                if (slider && valueSpan) {
+                    slider.value = personalitySettings[trait];
+                    valueSpan.textContent = personalitySettings[trait] + '%';
+                }
+            });
+        }
+        
+        // 更新个性特征
+        function updatePersonalityTrait(event) {
+            const slider = event.target;
+            const traitName = slider.id.replace('Slider', '');
+            const value = parseInt(slider.value);
+            const valueSpan = document.getElementById(traitName + 'Value');
+            
+            personalitySettings[traitName] = value;
+            valueSpan.textContent = value + '%';
+            
+            // 发送个性设置更新到服务器
+            updatePersonalitySettings();
+            
+            logStatus(`个性设置更新: ${getTraitText(traitName)} = ${value}%`);
+        }
+        
+        // 获取特征文本
+        function getTraitText(trait) {
+            const traitMap = {
+                'friendliness': '友好度',
+                'energy': '活跃度',
+                'curiosity': '好奇心',
+                'playfulness': '顽皮度'
+            };
+            return traitMap[trait] || trait;
+        }
+        
+        // 更新个性设置到服务器
+        async function updatePersonalitySettings() {
+            try {
+                const response = await fetch('/personality_settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        settings: personalitySettings,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status !== 'success') {
+                    console.warn('个性设置更新失败:', data.message);
+                }
+            } catch (error) {
+                console.error('Personality update error:', error);
+            }
+        }
+        
+        // 更新语音选择
+        function updateVoiceSelection(event) {
+            currentVoice = event.target.value;
+            
+            // 发送语音设置更新到服务器
+            updateVoiceSettings();
+            
+            logStatus(`语音角色已切换: ${event.target.selectedOptions[0].text}`);
+        }
+        
+        // 更新语音设置到服务器
+        async function updateVoiceSettings() {
+            try {
+                const response = await fetch('/voice_settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        voice: currentVoice,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status !== 'success') {
+                    console.warn('语音设置更新失败:', data.message);
+                }
+            } catch (error) {
+                console.error('Voice update error:', error);
+            }
         }
         
         // 防止页面缩放

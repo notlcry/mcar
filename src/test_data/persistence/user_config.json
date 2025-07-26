@@ -1,0 +1,19 @@
+{
+  "personality": {
+    "name": "圆滚滚",
+    "friendliness": 0.8,
+    "energy_level": 0.7,
+    "curiosity": 0.6,
+    "playfulness": 0.9
+  },
+  "voice_preferences": {
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "+0%",
+    "volume": "+0%"
+  },
+  "behavior_preferences": {
+    "movement_style": "bouncy",
+    "response_style": "friendly",
+    "interaction_frequency": "normal"
+  }
+}

@@ -8,6 +8,11 @@ from flask import Flask, render_template, request, jsonify, Response
 from markupsafe import escape
 from LOBOROBOT import LOBOROBOT
 from voice_control import VoiceController
+from enhanced_voice_control import EnhancedVoiceController
+from ai_conversation import AIConversationManager
+from emotion_engine import EmotionEngine
+from personality_manager import PersonalityManager
+from safety_manager import SafetyManager
 import RPi.GPIO as GPIO
 import threading
 import time
@@ -18,6 +23,7 @@ import io
 from picamera import PiCamera
 from picamera.array import PiRGBArray
 import logging
+import random
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, 
@@ -40,7 +46,20 @@ last_command = "stop"
 last_command_time = 0
 auto_obstacle_avoidance = False  # 是否启用自动避障
 voice_control_enabled = False    # 是否启用语音控制
+ai_conversation_enabled = False  # 是否启用AI对话模式
 voice_controller = None          # 语音控制器实例
+enhanced_voice_controller = None # 增强语音控制器实例
+ai_conversation_manager = None   # AI对话管理器实例
+emotion_engine = None            # 情感引擎实例
+personality_manager = None       # 个性管理器实例
+safety_manager = None            # 安全管理器实例
+
+# 会话状态管理
+current_session_id = None        # 当前会话ID
+session_start_time = None        # 会话开始时间
+conversation_context = {}        # 对话上下文缓存
+session_history = {}             # 会话历史记录
+active_sessions = {}             # 活跃会话管理
 
 sensor_data = {
     "left_ir": False,  # 左侧红外状态，False表示无障碍，True表示有障碍
@@ -128,9 +147,14 @@ def read_sensors():
         print(f"读取传感器错误: {str(e)}")
         return sensor_data
 
-def execute_robot_command(command, duration=0):
-    """执行机器人命令的通用函数"""
-    global last_command, last_command_time, robot_speed
+def execute_robot_command(command, duration=0, emotion_context=None, session_id=None):
+    """执行机器人命令的通用函数，支持情感上下文和会话跟踪"""
+    global last_command, last_command_time, robot_speed, personality_manager, safety_manager
+    
+    # 安全检查 - 障碍物避让系统优先级高于个性化动作
+    if safety_manager and not safety_manager.check_movement_safety(command, emotion_context):
+        logger.warning(f"安全检查失败，拒绝执行命令: {command}")
+        return
     
     last_command = command
     last_command_time = time.time()
@@ -138,6 +162,55 @@ def execute_robot_command(command, duration=0):
     if duration == 0:
         duration = 0 if command == 'stop' else 0.1  # 默认短时间执行
     
+    # 记录命令到会话历史
+    if session_id and session_id in active_sessions:
+        active_sessions[session_id]['commands'].append({
+            'command': command,
+            'timestamp': time.time(),
+            'emotion_context': emotion_context,
+            'duration': duration
+        })
+    
+    # 如果有个性管理器且提供了情感上下文，使用个性化执行
+    if personality_manager and emotion_context:
+        try:
+            # 将Web命令转换为对话命令格式
+            command_mapping = {
+                'forward': '前进',
+                'backward': '后退', 
+                'left': '左转',
+                'right': '右转',
+                'move_left': '左移',
+                'move_right': '右移',
+                'stop': '停止'
+            }
+            
+            if command in command_mapping:
+                # 如果emotion_context是字符串，需要转换为EmotionType
+                if isinstance(emotion_context, str):
+                    from emotion_engine import EmotionType
+                    emotion_map = {
+                        'happy': EmotionType.HAPPY,
+                        'excited': EmotionType.EXCITED,
+                        'sad': EmotionType.SAD,
+                        'confused': EmotionType.CONFUSED,
+                        'thinking': EmotionType.THINKING,
+                        'angry': EmotionType.ANGRY,
+                        'surprised': EmotionType.SURPRISED,
+                        'neutral': EmotionType.NEUTRAL
+                    }
+                    emotion_context = emotion_map.get(emotion_context, EmotionType.NEUTRAL)
+                
+                personality_manager.handle_conversation_command(
+                    command_mapping[command], 
+                    emotion_context
+                )
+                logger.info(f"执行个性化命令: {command} (情感: {emotion_context.value}) [会话: {session_id}]")
+                return
+        except Exception as e:
+            logger.warning(f"个性化命令执行失败，回退到基础命令: {e}")
+    
+    # 基础命令执行
     if command == 'forward':
         clbrobot.t_up(robot_speed, duration)
     elif command == 'backward':
@@ -161,7 +234,7 @@ def execute_robot_command(command, duration=0):
     elif command == 'stop':
         clbrobot.t_stop(0)
     
-    logger.info(f"执行命令: {command}, 速度: {robot_speed}, 持续时间: {duration}")
+    logger.info(f"执行命令: {command}, 速度: {robot_speed}, 持续时间: {duration} [会话: {session_id}]")
 
 def sensor_monitor_thread():
     """传感器监控线程"""
@@ -180,15 +253,20 @@ def sensor_monitor_thread():
 
 def obstacle_avoidance():
     """自动避障算法"""
-    global last_command
+    global last_command, safety_manager
     
     # 读取传感器数据
     left_ir = sensor_data["left_ir"]
     right_ir = sensor_data["right_ir"]
     distance = sensor_data["ultrasonic"]
     
+    # 更新安全管理器的障碍物状态
+    obstacle_detected = distance < 30 or left_ir or right_ir
+    if safety_manager:
+        safety_manager.update_obstacle_status(obstacle_detected)
+    
     # 避障逻辑
-    if distance < 30 or left_ir or right_ir:
+    if obstacle_detected:
         # 有障碍物
         if distance < 30:
             # 超声波检测到前方障碍物
@@ -329,6 +407,61 @@ def generate_frames():
             except:
                 pass
 
+def create_session():
+    """创建新的对话会话"""
+    global current_session_id, session_start_time, active_sessions
+    
+    session_id = f"session_{int(time.time())}_{random.randint(1000, 9999)}"
+    current_session_id = session_id
+    session_start_time = time.time()
+    
+    # 初始化会话数据
+    active_sessions[session_id] = {
+        'id': session_id,
+        'start_time': session_start_time,
+        'last_activity': session_start_time,
+        'conversation_history': [],
+        'commands': [],
+        'emotion_states': [],
+        'context': {},
+        'status': 'active'
+    }
+    
+    logger.info(f"创建新会话: {session_id}")
+    return session_id
+
+def update_session_activity(session_id):
+    """更新会话活动时间"""
+    if session_id in active_sessions:
+        active_sessions[session_id]['last_activity'] = time.time()
+
+def cleanup_inactive_sessions():
+    """清理非活跃会话"""
+    global active_sessions
+    current_time = time.time()
+    inactive_threshold = 1800  # 30分钟无活动则清理
+    
+    sessions_to_remove = []
+    for session_id, session_data in active_sessions.items():
+        if current_time - session_data['last_activity'] > inactive_threshold:
+            sessions_to_remove.append(session_id)
+    
+    for session_id in sessions_to_remove:
+        del active_sessions[session_id]
+        logger.info(f"清理非活跃会话: {session_id}")
+
+def get_session_context(session_id):
+    """获取会话上下文"""
+    if session_id in active_sessions:
+        return active_sessions[session_id]['context']
+    return {}
+
+def update_session_context(session_id, context_data):
+    """更新会话上下文"""
+    if session_id in active_sessions:
+        active_sessions[session_id]['context'].update(context_data)
+        update_session_activity(session_id)
+
 def robot_control_thread():
     global robot_running, last_command, last_command_time
     while True:
@@ -339,6 +472,10 @@ def robot_control_thread():
             clbrobot.t_stop(0)
             last_command = "stop"
             print("安全停止: 5秒内无新命令")
+        
+        # 定期清理非活跃会话
+        if int(current_time) % 300 == 0:  # 每5分钟清理一次
+            cleanup_inactive_sessions()
         
         time.sleep(0.1)
 
@@ -356,13 +493,17 @@ def video_feed():
 def control():
     command = request.json.get('command')
     duration = request.json.get('duration', 0)  # 可选参数，控制持续时间
+    emotion_context = request.json.get('emotion_context')  # 可选情感上下文
+    session_id = request.json.get('session_id', current_session_id)  # 可选会话ID
     
     try:
-        execute_robot_command(command, duration)
+        execute_robot_command(command, duration, emotion_context, session_id)
         return jsonify({
             'status': 'success', 
             'command': command,
-            'speed': robot_speed
+            'speed': robot_speed,
+            'emotion_context': emotion_context,
+            'session_id': session_id
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
@@ -489,9 +630,610 @@ def restart_camera():
             'message': f'摄像头重启出错: {str(e)}'
         })
 
+@app.route('/ai_conversation', methods=['POST'])
+def toggle_ai_conversation():
+    """切换AI对话模式"""
+    global ai_conversation_enabled, enhanced_voice_controller, ai_conversation_manager, emotion_engine, personality_manager, safety_manager
+    
+    try:
+        if ai_conversation_enabled:
+            # 停止AI对话模式
+            if enhanced_voice_controller:
+                enhanced_voice_controller.stop_conversation_mode()
+            if safety_manager:
+                safety_manager.stop_monitoring()
+            ai_conversation_enabled = False
+            logger.info("AI对话模式已停止")
+        else:
+            # 初始化安全管理器
+            if not safety_manager:
+                safety_manager = SafetyManager(robot_controller=clbrobot)
+                safety_manager.start_monitoring()
+                logger.info("安全管理器已初始化并启动监控")
+            
+            # 初始化AI系统组件
+            if not emotion_engine:
+                emotion_engine = EmotionEngine()
+                logger.info("情感引擎已初始化")
+            
+            if not personality_manager:
+                personality_manager = PersonalityManager(clbrobot, emotion_engine, safety_manager=safety_manager)
+                logger.info("个性管理器已初始化")
+            
+            if not ai_conversation_manager:
+                ai_conversation_manager = AIConversationManager(robot=clbrobot, safety_manager=safety_manager)
+                logger.info("AI对话管理器已初始化")
+            
+            if not enhanced_voice_controller:
+                enhanced_voice_controller = EnhancedVoiceController(
+                    robot=clbrobot, 
+                    ai_conversation_manager=ai_conversation_manager,
+                    safety_manager=safety_manager
+                )
+                logger.info("增强语音控制器已初始化")
+            
+            # 启动AI对话模式
+            if enhanced_voice_controller.start_conversation_mode():
+                ai_conversation_enabled = True
+                # 创建新会话
+                session_id = create_session()
+                logger.info(f"AI对话模式已启动，会话ID: {session_id}")
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'AI对话模式启动失败，请检查配置'
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'enabled': ai_conversation_enabled,
+            'session_id': current_session_id if ai_conversation_enabled else None
+        })
+        
+    except Exception as e:
+        logger.error(f"AI对话模式切换错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'AI对话模式切换失败: {str(e)}'
+        })
+
+@app.route('/ai_chat', methods=['POST'])
+def ai_chat():
+    """处理AI对话请求"""
+    global ai_conversation_manager, current_session_id, personality_manager
+    
+    try:
+        user_input = request.json.get('message', '').strip()
+        session_id = request.json.get('session_id', current_session_id)
+        
+        if not user_input:
+            return jsonify({
+                'status': 'error',
+                'message': '消息不能为空'
+            })
+        
+        if not ai_conversation_manager or not ai_conversation_manager.is_active():
+            return jsonify({
+                'status': 'error',
+                'message': 'AI对话模式未启动'
+            })
+        
+        # 确保会话存在
+        if not session_id or session_id not in active_sessions:
+            session_id = create_session()
+        
+        # 更新会话活动时间
+        update_session_activity(session_id)
+        
+        # 处理用户输入
+        context = ai_conversation_manager.process_user_input(user_input)
+        
+        if context:
+            # 记录对话到会话历史
+            conversation_entry = {
+                'user_input': user_input,
+                'ai_response': context.ai_response,
+                'emotion': context.emotion_detected,
+                'timestamp': context.timestamp.isoformat()
+            }
+            
+            if session_id in active_sessions:
+                active_sessions[session_id]['conversation_history'].append(conversation_entry)
+                active_sessions[session_id]['emotion_states'].append({
+                    'emotion': context.emotion_detected,
+                    'timestamp': context.timestamp.isoformat()
+                })
+            
+            # 检查是否包含运动指令并执行
+            if personality_manager:
+                # 分析用户输入中的运动指令
+                movement_keywords = ['前进', '后退', '左转', '右转', '转圈', '跳舞', '停止', '移动']
+                if any(keyword in user_input for keyword in movement_keywords):
+                    try:
+                        from emotion_engine import EmotionType
+                        emotion_map = {
+                            'happy': EmotionType.HAPPY,
+                            'excited': EmotionType.EXCITED,
+                            'sad': EmotionType.SAD,
+                            'confused': EmotionType.CONFUSED,
+                            'thinking': EmotionType.THINKING,
+                            'angry': EmotionType.ANGRY,
+                            'surprised': EmotionType.SURPRISED,
+                            'neutral': EmotionType.NEUTRAL
+                        }
+                        emotion_type = emotion_map.get(context.emotion_detected, EmotionType.NEUTRAL)
+                        
+                        # 执行个性化运动
+                        personality_manager.handle_conversation_command(user_input, emotion_type)
+                        logger.info(f"执行对话运动指令: {user_input} (情感: {context.emotion_detected})")
+                    except Exception as e:
+                        logger.warning(f"执行对话运动指令失败: {e}")
+            
+            # 如果有增强语音控制器，播放回复
+            if enhanced_voice_controller:
+                enhanced_voice_controller.speak_text(context.ai_response)
+            
+            return jsonify({
+                'status': 'success',
+                'response': context.ai_response,
+                'emotion': context.emotion_detected,
+                'timestamp': context.timestamp.isoformat(),
+                'session_id': session_id
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '处理消息失败'
+            })
+            
+    except Exception as e:
+        logger.error(f"AI对话处理错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'对话处理失败: {str(e)}'
+        })
+
+@app.route('/conversation_history', methods=['GET'])
+def get_conversation_history():
+    """获取对话历史"""
+    global ai_conversation_manager
+    
+    try:
+        if ai_conversation_manager:
+            history = ai_conversation_manager.get_conversation_history()
+            return jsonify({
+                'status': 'success',
+                'history': history
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'history': []
+            })
+            
+    except Exception as e:
+        logger.error(f"获取对话历史错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/clear_history', methods=['POST'])
+def clear_conversation_history():
+    """清空对话历史"""
+    global ai_conversation_manager
+    
+    try:
+        session_id = request.json.get('session_id', current_session_id)
+        
+        if ai_conversation_manager:
+            ai_conversation_manager.clear_conversation_history()
+        
+        # 清空会话历史
+        if session_id and session_id in active_sessions:
+            active_sessions[session_id]['conversation_history'] = []
+            active_sessions[session_id]['emotion_states'] = []
+            active_sessions[session_id]['commands'] = []
+            update_session_activity(session_id)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '对话历史已清空',
+            'session_id': session_id
+        })
+        
+    except Exception as e:
+        logger.error(f"清空对话历史错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/session/create', methods=['POST'])
+def create_new_session():
+    """创建新的对话会话"""
+    try:
+        session_id = create_session()
+        return jsonify({
+            'status': 'success',
+            'session_id': session_id,
+            'message': '新会话已创建'
+        })
+    except Exception as e:
+        logger.error(f"创建会话错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/session/<session_id>', methods=['GET'])
+def get_session_info(session_id):
+    """获取会话信息"""
+    try:
+        if session_id not in active_sessions:
+            return jsonify({
+                'status': 'error',
+                'message': '会话不存在'
+            })
+        
+        session_data = active_sessions[session_id]
+        return jsonify({
+            'status': 'success',
+            'session': {
+                'id': session_data['id'],
+                'start_time': session_data['start_time'],
+                'last_activity': session_data['last_activity'],
+                'conversation_count': len(session_data['conversation_history']),
+                'command_count': len(session_data['commands']),
+                'status': session_data['status']
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取会话信息错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/session/<session_id>/history', methods=['GET'])
+def get_session_history(session_id):
+    """获取会话历史"""
+    try:
+        if session_id not in active_sessions:
+            return jsonify({
+                'status': 'error',
+                'message': '会话不存在'
+            })
+        
+        session_data = active_sessions[session_id]
+        return jsonify({
+            'status': 'success',
+            'history': session_data['conversation_history'],
+            'commands': session_data['commands'],
+            'emotions': session_data['emotion_states']
+        })
+    except Exception as e:
+        logger.error(f"获取会话历史错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/sessions', methods=['GET'])
+def list_active_sessions():
+    """列出所有活跃会话"""
+    try:
+        sessions_info = []
+        for session_id, session_data in active_sessions.items():
+            sessions_info.append({
+                'id': session_id,
+                'start_time': session_data['start_time'],
+                'last_activity': session_data['last_activity'],
+                'conversation_count': len(session_data['conversation_history']),
+                'status': session_data['status']
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'sessions': sessions_info,
+            'total_count': len(sessions_info)
+        })
+    except Exception as e:
+        logger.error(f"列出会话错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/ai_emotion', methods=['GET'])
+def get_current_emotion():
+    """获取当前情感状态"""
+    try:
+        if not emotion_engine:
+            return jsonify({
+                'status': 'error',
+                'message': '情感引擎未初始化'
+            })
+        
+        emotion_state = emotion_engine.get_current_emotional_state()
+        return jsonify({
+            'status': 'success',
+            'emotion': {
+                'primary': emotion_state.primary_emotion.value,
+                'intensity': emotion_state.intensity,
+                'movement_pattern': emotion_state.movement_pattern,
+                'secondary_emotions': {k.value: v for k, v in emotion_state.secondary_emotions.items()},
+                'triggers': emotion_state.triggers,
+                'timestamp': emotion_state.timestamp.isoformat()
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取情感状态错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/personality_settings', methods=['POST'])
+def update_personality_settings():
+    """更新个性设置"""
+    global personality_manager
+    
+    try:
+        settings = request.json.get('settings', {})
+        session_id = request.json.get('session_id', current_session_id)
+        
+        if not personality_manager:
+            return jsonify({
+                'status': 'error',
+                'message': '个性管理器未初始化'
+            })
+        
+        # 更新个性设置
+        personality_traits = {
+            'friendliness': settings.get('friendliness', 80) / 100.0,
+            'energy_level': settings.get('energy', 70) / 100.0,
+            'curiosity': settings.get('curiosity', 60) / 100.0,
+            'playfulness': settings.get('playfulness', 90) / 100.0
+        }
+        
+        # 更新个性管理器的设置
+        personality_manager.update_personality_traits(personality_traits)
+        
+        # 更新会话上下文
+        if session_id and session_id in active_sessions:
+            active_sessions[session_id]['context']['personality_settings'] = settings
+            update_session_activity(session_id)
+        
+        logger.info(f"个性设置已更新: {settings} [会话: {session_id}]")
+        
+        return jsonify({
+            'status': 'success',
+            'settings': settings,
+            'session_id': session_id
+        })
+        
+    except Exception as e:
+        logger.error(f"更新个性设置错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/voice_settings', methods=['POST'])
+def update_voice_settings():
+    """更新语音设置"""
+    global enhanced_voice_controller
+    
+    try:
+        voice = request.json.get('voice', 'zh-CN-XiaoxiaoNeural')
+        session_id = request.json.get('session_id', current_session_id)
+        
+        # 更新增强语音控制器的语音设置
+        if enhanced_voice_controller:
+            enhanced_voice_controller.set_tts_voice(voice)
+        
+        # 更新会话上下文
+        if session_id and session_id in active_sessions:
+            active_sessions[session_id]['context']['voice_settings'] = {'voice': voice}
+            update_session_activity(session_id)
+        
+        logger.info(f"语音设置已更新: {voice} [会话: {session_id}]")
+        
+        return jsonify({
+            'status': 'success',
+            'voice': voice,
+            'session_id': session_id
+        })
+        
+    except Exception as e:
+        logger.error(f"更新语音设置错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/ai_status', methods=['GET'])
+def get_ai_status():
+    """获取AI系统状态"""
+    global ai_conversation_enabled, current_session_id, emotion_engine, personality_manager
+    
+    try:
+        status_info = {
+            'ai_conversation_enabled': ai_conversation_enabled,
+            'session_id': current_session_id,
+            'session_active': current_session_id in active_sessions if current_session_id else False,
+            'emotion_engine_active': emotion_engine is not None,
+            'personality_manager_active': personality_manager is not None
+        }
+        
+        # 添加当前情感状态
+        if emotion_engine:
+            try:
+                emotion_state = emotion_engine.get_current_emotional_state()
+                status_info['current_emotion'] = {
+                    'primary': emotion_state.primary_emotion.value,
+                    'intensity': emotion_state.intensity,
+                    'movement_pattern': emotion_state.movement_pattern
+                }
+            except Exception as e:
+                logger.warning(f"获取情感状态失败: {e}")
+                status_info['current_emotion'] = None
+        
+        # 添加会话统计
+        if current_session_id and current_session_id in active_sessions:
+            session_data = active_sessions[current_session_id]
+            status_info['session_stats'] = {
+                'conversation_count': len(session_data['conversation_history']),
+                'command_count': len(session_data['commands']),
+                'duration': time.time() - session_data['start_time']
+            }
+        
+        return jsonify({
+            'status': 'success',
+            'ai_status': status_info
+        })
+        
+    except Exception as e:
+        logger.error(f"获取AI状态错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/ai_personality', methods=['GET', 'POST'])
+def manage_personality():
+    """管理个性设置"""
+    global personality_manager
+    
+    try:
+        if request.method == 'GET':
+            # 获取当前个性设置
+            if not personality_manager:
+                return jsonify({
+                    'status': 'error',
+                    'message': '个性管理器未初始化'
+                })
+            
+            status = personality_manager.get_status()
+            return jsonify({
+                'status': 'success',
+                'personality': {
+                    'name': status['personality_name'],
+                    'traits': status['personality_traits'],
+                    'current_emotion': status['current_emotion'],
+                    'emotion_intensity': status['emotion_intensity']
+                }
+            })
+        
+        elif request.method == 'POST':
+            # 更新个性设置
+            if not personality_manager:
+                return jsonify({
+                    'status': 'error',
+                    'message': '个性管理器未初始化'
+                })
+            
+            traits = request.json.get('traits', {})
+            if traits:
+                personality_manager.update_personality_traits(traits)
+                return jsonify({
+                    'status': 'success',
+                    'message': '个性设置已更新',
+                    'updated_traits': traits
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': '未提供有效的个性特征数据'
+                })
+    
+    except Exception as e:
+        logger.error(f"管理个性设置错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/ai_execute_emotion', methods=['POST'])
+def execute_emotional_movement():
+    """执行情感驱动的运动"""
+    global personality_manager
+    
+    try:
+        if not personality_manager:
+            return jsonify({
+                'status': 'error',
+                'message': '个性管理器未初始化'
+            })
+        
+        emotion = request.json.get('emotion', 'neutral')
+        intensity = request.json.get('intensity', 0.5)
+        
+        # 转换情感类型
+        from emotion_engine import EmotionType
+        emotion_map = {
+            'happy': EmotionType.HAPPY,
+            'excited': EmotionType.EXCITED,
+            'sad': EmotionType.SAD,
+            'confused': EmotionType.CONFUSED,
+            'thinking': EmotionType.THINKING,
+            'angry': EmotionType.ANGRY,
+            'surprised': EmotionType.SURPRISED,
+            'neutral': EmotionType.NEUTRAL
+        }
+        
+        emotion_type = emotion_map.get(emotion, EmotionType.NEUTRAL)
+        
+        # 执行情感运动
+        success = personality_manager.execute_emotional_movement(emotion_type, intensity)
+        
+        return jsonify({
+            'status': 'success' if success else 'failed',
+            'message': f'情感运动{"执行成功" if success else "执行失败"}',
+            'emotion': emotion,
+            'intensity': intensity
+        })
+        
+    except Exception as e:
+        logger.error(f"执行情感运动错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
 @app.route('/status', methods=['GET'])
 def get_status():
-    global camera_type, auto_obstacle_avoidance, voice_control_enabled
+    global camera_type, auto_obstacle_avoidance, voice_control_enabled, ai_conversation_enabled
+    
+    # 获取AI对话状态
+    ai_status = {}
+    if ai_conversation_manager:
+        ai_status = ai_conversation_manager.get_status()
+    
+    # 获取增强语音控制状态
+    voice_status = {}
+    if enhanced_voice_controller:
+        voice_status = enhanced_voice_controller.get_conversation_status()
+    
+    # 获取情感引擎状态
+    emotion_status = {}
+    if emotion_engine:
+        emotion_status = emotion_engine.get_status()
+    
+    # 获取个性管理器状态
+    personality_status = {}
+    if personality_manager:
+        personality_status = personality_manager.get_status()
+    
+    # 获取会话统计
+    session_stats = {
+        'active_sessions': len(active_sessions),
+        'current_session': current_session_id,
+        'total_conversations': sum(len(s['conversation_history']) for s in active_sessions.values()),
+        'total_commands': sum(len(s['commands']) for s in active_sessions.values())
+    }
+    
     return jsonify({
         'status': 'online',
         'last_command': last_command,
@@ -500,8 +1242,312 @@ def get_status():
         'camera_type': camera_type,
         'auto_avoidance': auto_obstacle_avoidance,
         'voice_control': voice_control_enabled,
-        'sensors': sensor_data
+        'ai_conversation': ai_conversation_enabled,
+        'sensors': sensor_data,
+        'ai_status': ai_status,
+        'voice_status': voice_status,
+        'emotion_status': emotion_status,
+        'personality_status': personality_status,
+        'session_stats': session_stats
     })
+
+@app.route('/ai_integrated_command', methods=['POST'])
+def ai_integrated_command():
+    """集成AI对话和机器人控制的统一接口"""
+    global ai_conversation_manager, personality_manager, current_session_id
+    
+    try:
+        user_input = request.json.get('message', '').strip()
+        command_type = request.json.get('type', 'conversation')  # 'conversation' 或 'command'
+        session_id = request.json.get('session_id', current_session_id)
+        
+        if not user_input:
+            return jsonify({
+                'status': 'error',
+                'message': '输入不能为空'
+            })
+        
+        # 确保AI系统已初始化
+        if not ai_conversation_manager or not ai_conversation_manager.is_active():
+            return jsonify({
+                'status': 'error',
+                'message': 'AI对话系统未启动'
+            })
+        
+        # 确保会话存在
+        if not session_id or session_id not in active_sessions:
+            session_id = create_session()
+        
+        update_session_activity(session_id)
+        
+        # 处理输入
+        if command_type == 'conversation':
+            # AI对话处理
+            context = ai_conversation_manager.process_user_input(user_input)
+            
+            if not context:
+                return jsonify({
+                    'status': 'error',
+                    'message': '对话处理失败'
+                })
+            
+            # 记录到会话历史
+            conversation_entry = {
+                'user_input': user_input,
+                'ai_response': context.ai_response,
+                'emotion': context.emotion_detected,
+                'timestamp': context.timestamp.isoformat(),
+                'type': 'conversation'
+            }
+            
+            if session_id in active_sessions:
+                active_sessions[session_id]['conversation_history'].append(conversation_entry)
+                active_sessions[session_id]['emotion_states'].append({
+                    'emotion': context.emotion_detected,
+                    'timestamp': context.timestamp.isoformat()
+                })
+            
+            # 分析是否包含运动指令
+            movement_executed = False
+            if personality_manager:
+                movement_keywords = ['前进', '后退', '左转', '右转', '转圈', '跳舞', '停止', '移动', '走', '来', '去']
+                if any(keyword in user_input for keyword in movement_keywords):
+                    try:
+                        from emotion_engine import EmotionType
+                        emotion_map = {
+                            'happy': EmotionType.HAPPY,
+                            'excited': EmotionType.EXCITED,
+                            'sad': EmotionType.SAD,
+                            'confused': EmotionType.CONFUSED,
+                            'thinking': EmotionType.THINKING,
+                            'angry': EmotionType.ANGRY,
+                            'surprised': EmotionType.SURPRISED,
+                            'neutral': EmotionType.NEUTRAL
+                        }
+                        emotion_type = emotion_map.get(context.emotion_detected, EmotionType.NEUTRAL)
+                        
+                        # 执行个性化运动
+                        movement_executed = personality_manager.handle_conversation_command(user_input, emotion_type)
+                        
+                        # 记录运动命令
+                        if movement_executed and session_id in active_sessions:
+                            active_sessions[session_id]['commands'].append({
+                                'command': user_input,
+                                'timestamp': time.time(),
+                                'emotion_context': context.emotion_detected,
+                                'type': 'ai_triggered'
+                            })
+                        
+                        logger.info(f"AI触发运动指令: {user_input} (情感: {context.emotion_detected}) - {'成功' if movement_executed else '失败'}")
+                    except Exception as e:
+                        logger.warning(f"AI触发运动指令失败: {e}")
+            
+            # 语音回复
+            if enhanced_voice_controller:
+                enhanced_voice_controller.speak_text(context.ai_response)
+            
+            return jsonify({
+                'status': 'success',
+                'response': context.ai_response,
+                'emotion': context.emotion_detected,
+                'timestamp': context.timestamp.isoformat(),
+                'session_id': session_id,
+                'movement_executed': movement_executed,
+                'type': 'conversation'
+            })
+        
+        elif command_type == 'command':
+            # 直接命令处理
+            # 解析命令
+            command_mapping = {
+                '前进': 'forward',
+                '后退': 'backward',
+                '左转': 'left',
+                '右转': 'right',
+                '左移': 'move_left',
+                '右移': 'move_right',
+                '停止': 'stop'
+            }
+            
+            robot_command = None
+            for chinese_cmd, english_cmd in command_mapping.items():
+                if chinese_cmd in user_input:
+                    robot_command = english_cmd
+                    break
+            
+            if robot_command:
+                # 获取当前情感状态作为上下文
+                emotion_context = 'neutral'
+                if emotion_engine:
+                    current_emotion = emotion_engine.get_current_emotional_state()
+                    emotion_context = current_emotion.primary_emotion.value
+                
+                # 执行命令
+                execute_robot_command(robot_command, 1.0, emotion_context, session_id)
+                
+                return jsonify({
+                    'status': 'success',
+                    'command': robot_command,
+                    'original_input': user_input,
+                    'emotion_context': emotion_context,
+                    'session_id': session_id,
+                    'type': 'command'
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'未识别的命令: {user_input}'
+                })
+        
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'不支持的命令类型: {command_type}'
+            })
+    
+    except Exception as e:
+        logger.error(f"集成命令处理错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'处理失败: {str(e)}'
+        })
+
+@app.route('/ai_wake_up', methods=['POST'])
+def ai_wake_up():
+    """强制唤醒AI对话模式（用于测试或手动激活）"""
+    global enhanced_voice_controller
+    
+    try:
+        if not enhanced_voice_controller:
+            return jsonify({
+                'status': 'error',
+                'message': '增强语音控制器未初始化'
+            })
+        
+        success = enhanced_voice_controller.force_wake_up()
+        
+        return jsonify({
+            'status': 'success' if success else 'failed',
+            'message': '强制唤醒' + ('成功' if success else '失败')
+        })
+        
+    except Exception as e:
+        logger.error(f"强制唤醒错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/safety/status', methods=['GET'])
+def get_safety_status():
+    """获取安全状态"""
+    try:
+        if not safety_manager:
+            return jsonify({
+                'status': 'error',
+                'message': '安全管理器未初始化'
+            })
+        
+        safety_status = safety_manager.get_safety_status()
+        system_health = safety_manager.get_system_health()
+        
+        return jsonify({
+            'status': 'success',
+            'safety_status': safety_status,
+            'system_health': system_health
+        })
+        
+    except Exception as e:
+        logger.error(f"获取安全状态错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/safety/emergency_stop', methods=['POST'])
+def emergency_stop():
+    """紧急停止"""
+    try:
+        if safety_manager:
+            safety_manager.emergency_stop()
+        else:
+            # 直接停止机器人
+            clbrobot.t_stop(0.1)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '紧急停止已执行'
+        })
+        
+    except Exception as e:
+        logger.error(f"紧急停止错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/safety/reset_emergency', methods=['POST'])
+def reset_emergency_stop():
+    """重置紧急停止状态"""
+    try:
+        if not safety_manager:
+            return jsonify({
+                'status': 'error',
+                'message': '安全管理器未初始化'
+            })
+        
+        safety_manager.reset_emergency_stop()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '紧急停止状态已重置'
+        })
+        
+    except Exception as e:
+        logger.error(f"重置紧急停止错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@app.route('/safety/offline_command', methods=['POST'])
+def process_offline_command():
+    """处理离线模式命令"""
+    try:
+        user_input = request.json.get('command', '').strip()
+        
+        if not user_input:
+            return jsonify({
+                'status': 'error',
+                'message': '命令不能为空'
+            })
+        
+        if not safety_manager:
+            return jsonify({
+                'status': 'error',
+                'message': '安全管理器未初始化'
+            })
+        
+        response = safety_manager.process_offline_command(user_input)
+        
+        if response:
+            return jsonify({
+                'status': 'success',
+                'response': response,
+                'offline_mode': safety_manager.safety_state.offline_mode_active
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '无法处理该命令'
+            })
+            
+    except Exception as e:
+        logger.error(f"处理离线命令错误: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
 
 # 记录启动时间
 start_time = time.time()
@@ -537,6 +1583,13 @@ if __name__ == '__main__':
         # 停止语音控制
         if voice_controller:
             voice_controller.stop()
+            
+        # 停止AI对话模式
+        if enhanced_voice_controller:
+            enhanced_voice_controller.stop_conversation_mode()
+            
+        if ai_conversation_manager:
+            ai_conversation_manager.stop_conversation_mode()
             
         # 释放摄像头资源
         if camera_type == "picamera" and picam:
