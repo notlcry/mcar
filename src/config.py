@@ -99,6 +99,13 @@ class ConfigManager:
         if os.getenv('LOG_LEVEL'):
             self.system_config.log_level = os.getenv('LOG_LEVEL')
     
+    def _expand_env_vars(self, value):
+        """展开环境变量"""
+        if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
+            env_var = value[2:-1]  # 移除 ${ 和 }
+            return os.getenv(env_var, value)  # 如果环境变量不存在，返回原值
+        return value
+    
     def _load_from_file(self):
         """从配置文件加载"""
         try:
@@ -110,12 +117,16 @@ class ConfigManager:
                 if 'ai' in config_data:
                     for key, value in config_data['ai'].items():
                         if hasattr(self.ai_config, key):
-                            setattr(self.ai_config, key, value)
+                            # 展开环境变量
+                            expanded_value = self._expand_env_vars(value)
+                            setattr(self.ai_config, key, expanded_value)
                 
                 if 'voice' in config_data:
                     for key, value in config_data['voice'].items():
                         if hasattr(self.voice_config, key):
-                            setattr(self.voice_config, key, value)
+                            # 展开环境变量
+                            expanded_value = self._expand_env_vars(value)
+                            setattr(self.voice_config, key, expanded_value)
                 
                 if 'personality' in config_data:
                     for key, value in config_data['personality'].items():
@@ -220,6 +231,9 @@ def _get_config_manager():
     if _config_manager is None:
         _config_manager = ConfigManager()
     return _config_manager
+
+# 全局配置管理器实例
+config_manager = _get_config_manager()
 
 # 便捷访问函数
 def get_ai_config() -> AIConfig:

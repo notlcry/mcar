@@ -1,13 +1,13 @@
 {
   "ai": {
-    "gemini_api_key": "you-api-key",
+    "gemini_api_key": "${GEMINI_API_KEY}",
     "model_name": "gemini-2.0-flash-exp",
     "temperature": 0.7,
     "max_output_tokens": 200,
     "personality_prompt": "\n    你是一个可爱的AI桌宠机器人，名字叫\"圆滚滚\"。你的特点：\n    - 性格活泼友好，喜欢和用户互动\n    - 说话风格可爱，偶尔会用一些萌萌的语气词\n    - 能够表达不同的情感（开心、悲伤、兴奋、困惑等）\n    - 会根据对话内容做出相应的动作反应\n    - 记住你是一个实体机器人，可以移动和做动作\n    \n    请用简短、自然的中文回复，不要太长。在回复中可以提及你的动作或表情。\n    "
   },
   "voice": {
-    "picovoice_access_key": "",
+    "picovoice_access_key": "${PICOVOICE_ACCESS_KEY}",
     "wake_words": [
       "喵喵小车",
       "小车",
