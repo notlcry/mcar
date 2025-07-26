@@ -35,13 +35,13 @@ adafruit-circuitpython-ssd1306>=2.12.0
 adafruit-blinka>=8.0.0
 
 # 机器学习（轻量版本，适合树莓派）
-# 注意：在树莓派上安装torch可能需要很长时间
-# 建议使用预编译版本或考虑替代方案
-torch>=1.13.0,<2.0.0
-torchaudio>=0.13.0,<1.0.0
+# 注意：torch在树莓派上安装复杂，暂时注释掉
+# 如需使用，请手动安装：pip install torch --index-url https://download.pytorch.org/whl/cpu
+# torch>=1.13.0,<2.0.0
+# torchaudio>=0.13.0,<1.0.0
 
-# Whisper语音识别（可选，资源消耗较大）
-openai-whisper>=20231117
+# Whisper语音识别（可选，资源消耗较大，需要torch）
+# openai-whisper>=20231117
 
 # 系统工具
 requests>=2.25.0

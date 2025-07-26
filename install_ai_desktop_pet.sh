@@ -189,12 +189,24 @@ install_python_dependencies() {
         source .venv/bin/activate
     fi
     
-    # 检查是否有树莓派专用依赖文件
-    if [[ -f "requirements_raspberry_pi.txt" ]]; then
-        log_info "使用树莓派专用依赖文件"
-        pip install -r requirements_raspberry_pi.txt
+    # 检查Python版本并选择合适的依赖文件
+    PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+    log_info "检测到Python版本: $PYTHON_VERSION"
+    
+    # 检查是否为树莓派
+    if [[ -f "/proc/device-tree/model" ]] && grep -q "Raspberry Pi" /proc/device-tree/model; then
+        log_info "检测到树莓派环境"
+        
+        # 根据Python版本选择依赖文件
+        if python3 -c 'import sys; exit(0 if sys.version_info >= (3, 10) else 1)'; then
+            log_info "Python >= 3.10，使用完整依赖"
+            pip install -r requirements_raspberry_pi.txt
+        else
+            log_info "Python < 3.10，使用轻量级依赖"
+            pip install -r requirements_raspberry_pi_lite.txt
+        fi
     else
-        log_info "使用通用依赖文件"
+        log_info "非树莓派环境，使用通用依赖文件"
         pip install -r src/requirements.txt
     fi
     
