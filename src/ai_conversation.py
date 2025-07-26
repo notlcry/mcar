@@ -137,12 +137,24 @@ class AIConversationManager:
                 ]
                 
                 # 创建模型实例
-                self.model = genai.GenerativeModel(
-                    model_name=self.ai_config.model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=self.personality_prompt
-                )
+                try:
+                    # 尝试使用system_instruction参数（新版本API）
+                    self.model = genai.GenerativeModel(
+                        model_name=self.ai_config.model_name,
+                        generation_config=generation_config,
+                        safety_settings=safety_settings,
+                        system_instruction=self.personality_prompt
+                    )
+                except TypeError:
+                    # 如果不支持system_instruction，使用旧版本方式
+                    logger.info("使用兼容模式创建Gemini模型")
+                    self.model = genai.GenerativeModel(
+                        model_name=self.ai_config.model_name,
+                        generation_config=generation_config,
+                        safety_settings=safety_settings
+                    )
+                    # 将个性提示保存，在对话时使用
+                    self.system_prompt = self.personality_prompt
                 
                 logger.info(f"Gemini API初始化成功，使用模型: {self.ai_config.model_name}")
                 logger.info(f"API密钥: {self.api_key[:20]}..." if self.api_key else "API密钥: 未设置")
@@ -169,6 +181,19 @@ class AIConversationManager:
             
             # 创建新的聊天会话，包含上下文信息
             chat_history = self._build_chat_history_from_memory()
+            
+            # 如果使用兼容模式，在历史记录开头添加系统提示
+            if hasattr(self, 'system_prompt'):
+                system_message = {
+                    'role': 'user',
+                    'parts': [self.system_prompt]
+                }
+                system_response = {
+                    'role': 'model', 
+                    'parts': ['我明白了，我会按照这个角色设定来回复。']
+                }
+                chat_history = [system_message, system_response] + chat_history
+            
             self.chat_session = self.model.start_chat(history=chat_history)
             
             # 清空临时对话历史（使用记忆管理器）
