@@ -1,6 +1,6 @@
 {
   "ai": {
-    "gemini_api_key": "AIzaSyBt-Em9fPWh-886h3xSr0o6htETYoznF0M",
+    "gemini_api_key": "you-api-key",
     "model_name": "gemini-2.0-flash-exp",
     "temperature": 0.7,
     "max_output_tokens": 200,
