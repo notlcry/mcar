@@ -169,6 +169,18 @@ def check_dependencies():
     
     missing_deps = []
     
+    # 临时修改sys.path，避免从当前目录导入numpy
+    import sys
+    original_path = sys.path[:]
+    
+    # 移除当前目录，避免numpy导入冲突
+    if '.' in sys.path:
+        sys.path.remove('.')
+    if '' in sys.path:
+        sys.path.remove('')
+    if os.getcwd() in sys.path:
+        sys.path.remove(os.getcwd())
+    
     try:
         import numpy
         print(f"✅ numpy {numpy.__version__}")
@@ -189,6 +201,9 @@ def check_dependencies():
     except ImportError as e:
         missing_deps.append("vosk")
         print(f"❌ vosk - {e}")
+    
+    # 恢复原始路径
+    sys.path[:] = original_path
     
     if missing_deps:
         print(f"\n⚠️  缺少依赖: {', '.join(missing_deps)}")
