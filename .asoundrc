@@ -1,5 +1,5 @@
-# ALSA配置 - 直接使用硬件设备
-# 默认播放设备
+# ALSA配置 - 修复播放设备问题
+# 播放设备：使用Card 0 (树莓派内置音频)
 pcm.!default {
     type plug
     slave {
@@ -10,19 +10,30 @@ pcm.!default {
     }
 }
 
-# 默认控制设备
+# 控制设备：使用Card 0
 ctl.!default {
     type hw
     card 0
 }
 
-# 录音设备 (USB麦克风)
+# 录音设备：使用Card 1 (USB麦克风)
 pcm.mic {
     type plug
     slave {
         pcm "hw:1,0"
         rate 16000
         channels 1
+        format S16_LE
+    }
+}
+
+# 强制播放使用Card 0
+pcm.speaker {
+    type plug
+    slave {
+        pcm "hw:0,0"
+        rate 44100
+        channels 2
         format S16_LE
     }
 }
