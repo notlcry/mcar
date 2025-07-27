@@ -171,24 +171,24 @@ def check_dependencies():
     
     try:
         import numpy
-        print("✅ numpy")
-    except ImportError:
+        print(f"✅ numpy {numpy.__version__}")
+    except ImportError as e:
         missing_deps.append("numpy")
-        print("❌ numpy")
+        print(f"❌ numpy - {e}")
     
     try:
         import scipy
-        print("✅ scipy")
-    except ImportError:
+        print(f"✅ scipy {scipy.__version__}")
+    except ImportError as e:
         missing_deps.append("scipy")
-        print("❌ scipy")
+        print(f"❌ scipy - {e}")
     
     try:
         import vosk
         print("✅ vosk")
-    except ImportError:
+    except ImportError as e:
         missing_deps.append("vosk")
-        print("❌ vosk")
+        print(f"❌ vosk - {e}")
     
     if missing_deps:
         print(f"\n⚠️  缺少依赖: {', '.join(missing_deps)}")
