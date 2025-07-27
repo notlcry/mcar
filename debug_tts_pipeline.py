@@ -67,9 +67,9 @@ def test_ffmpeg_conversion(mp3_file):
     try:
         wav_file = mp3_file.replace('.mp3', '.wav')
         
-        # 使用ffmpeg转换
+        # 使用ffmpeg转换（完整路径）
         convert_cmd = [
-            'ffmpeg', '-i', mp3_file,
+            '/usr/bin/ffmpeg', '-i', mp3_file,
             '-ar', '44100',  # 采样率44100Hz
             '-ac', '1',      # 单声道
             '-f', 'wav',     # WAV格式
@@ -111,8 +111,8 @@ def test_wav_file_info(wav_file):
         return False
     
     try:
-        # 使用ffprobe检查文件信息
-        probe_cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', wav_file]
+        # 使用ffprobe检查文件信息（完整路径）
+        probe_cmd = ['/usr/bin/ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', wav_file]
         
         result = subprocess.run(probe_cmd, capture_output=True, text=True)
         
@@ -192,9 +192,9 @@ def test_alternative_conversion():
             # 使用不同的ffmpeg参数转换
             wav_path = mp3_path.replace('.mp3', '_alt.wav')
             
-            # 尝试不同的转换参数
+            # 尝试不同的转换参数（完整路径）
             convert_cmd = [
-                'ffmpeg', '-i', mp3_path,
+                '/usr/bin/ffmpeg', '-i', mp3_path,
                 '-acodec', 'pcm_s16le',  # 明确指定PCM编码
                 '-ar', '44100',          # 采样率
                 '-ac', '1',              # 单声道

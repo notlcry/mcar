@@ -580,9 +580,9 @@ class EnhancedVoiceController(VoiceController):
             if file_path.endswith('.mp3'):
                 wav_path = file_path.replace('.mp3', '.wav')
                 
-                # 使用ffmpeg转换
+                # 使用ffmpeg转换（完整路径）
                 convert_cmd = [
-                    'ffmpeg', '-i', file_path,
+                    '/usr/bin/ffmpeg', '-i', file_path,
                     '-ar', '44100',  # 采样率44100Hz
                     '-ac', '1',      # 单声道
                     '-f', 'wav',     # WAV格式
