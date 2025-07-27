@@ -265,10 +265,11 @@ class EnhancedVoiceController(VoiceController):
         self.is_listening = True
         logger.info("开始语音识别监听...")
         
-        # 设置识别器参数
-        self.recognizer.energy_threshold = 300
-        self.recognizer.pause_threshold = 0.8
-        self.recognizer.timeout = 1
+        # 优化识别器参数以提高准确性
+        self.recognizer.energy_threshold = 4000  # 提高能量阈值，减少噪音干扰
+        self.recognizer.pause_threshold = 1.0    # 增加停顿时间，确保完整句子
+        self.recognizer.timeout = 2              # 增加超时时间
+        self.recognizer.phrase_time_limit = 10   # 允许更长的语音输入
         
         while self.is_listening:
             try:
@@ -276,8 +277,9 @@ class EnhancedVoiceController(VoiceController):
                 if self.conversation_mode and self.wake_word_detected:
                     with self.microphone as source:
                         logger.debug("正在监听对话...")
-                        # 监听音频，对话模式下延长监听时间
-                        audio = self.recognizer.listen(source, timeout=2, phrase_time_limit=8)
+                        # 对话模式下优化音频捕获
+                        self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                        audio = self.recognizer.listen(source, timeout=3, phrase_time_limit=10)
                     
                     # 将音频放入处理队列
                     self.audio_queue.put(audio)
@@ -321,56 +323,64 @@ class EnhancedVoiceController(VoiceController):
             if self.expression_controller:
                 self.expression_controller.show_thinking_animation()
             
-            # 语音识别 - 优先级顺序：Vosk(中文) > Whisper > Google(在线) > PocketSphinx(英文)
+            # 语音识别 - 优化顺序：Google(在线) > Vosk(中文) > Whisper > PocketSphinx(英文)
             text = None
-            logger.info("🔍 开始语音识别，尝试顺序: Vosk → Whisper → Google → PocketSphinx")
+            logger.info("🔍 开始语音识别，尝试顺序: Google → Vosk → Whisper → PocketSphinx")
             
-            # 1. 优先使用Vosk进行中文识别
-            if self.use_vosk and self.vosk_recognizer:
+            # 1. 优先使用Google在线识别（准确性最高）
+            try:
+                logger.info("🎯 尝试使用Google在线识别...")
+                text = self.recognizer.recognize_google(audio, language='zh-CN')
+                if text and text.strip():
+                    logger.info(f"✅ Google识别成功: '{text}' (中文在线)")
+                else:
+                    logger.info("⚠️  Google返回空结果")
+                    text = None
+            except sr.UnknownValueError:
+                logger.info("⚠️  Google无法理解音频")
+                text = None
+            except sr.RequestError as e:
+                logger.warning(f"❌ Google服务错误: {e}")
+                text = None
+            except Exception as e:
+                logger.warning(f"❌ Google识别失败: {e}")
+                text = None
+            
+            # 2. 备选：使用Vosk进行中文识别
+            if not text and self.use_vosk and self.vosk_recognizer:
                 logger.info("🎯 尝试使用Vosk进行中文识别...")
                 try:
                     text = self.vosk_recognizer.recognize_from_speech_recognition_audio(audio)
-                    if text:
+                    if text and text.strip():
                         logger.info(f"✅ Vosk识别成功: '{text}' (中文离线)")
                     else:
                         logger.info("⚠️  Vosk返回空结果")
+                        text = None
                 except Exception as e:
                     logger.warning(f"❌ Vosk识别失败: {e}")
-            else:
-                logger.warning("⚠️  Vosk不可用，跳过")
+                    text = None
             
-            # 2. 备选：使用Whisper
+            # 3. 备选：使用Whisper
             if not text and self.use_whisper and self.whisper_recognizer:
                 logger.info("🎯 尝试使用Whisper识别...")
                 try:
                     text = self._whisper_recognize_from_audio(audio)
-                    if text:
+                    if text and text.strip():
                         logger.info(f"✅ Whisper识别成功: '{text}' (多语言离线)")
                     else:
                         logger.info("⚠️  Whisper返回空结果")
+                        text = None
                 except Exception as e:
                     logger.warning(f"❌ Whisper识别失败: {e}")
-            else:
-                logger.info("⚠️  Whisper不可用，跳过")
-            
-            # 3. 备选：使用Google在线识别（支持中文）
-            if not text:
-                logger.info("🎯 尝试使用Google在线识别...")
-                try:
-                    text = self.recognizer.recognize_google(audio, language='zh-CN')
-                    if text:
-                        logger.info(f"✅ Google识别成功: '{text}' (中文在线)")
-                    else:
-                        logger.info("⚠️  Google返回空结果")
-                except Exception as e:
-                    logger.warning(f"❌ Google识别失败: {e}")
+                    text = None
             
             # 4. 最后备选：使用PocketSphinx（英文）
             if not text:
                 logger.info("🎯 尝试使用PocketSphinx识别...")
                 try:
-                    text = self.recognizer.recognize_sphinx(audio)
-                    if text:
+                    sphinx_text = self.recognizer.recognize_sphinx(audio)
+                    if sphinx_text and sphinx_text.strip():
+                        text = sphinx_text
                         logger.info(f"✅ PocketSphinx识别成功: '{text}' (英文离线)")
                     else:
                         logger.info("⚠️  PocketSphinx返回空结果")
@@ -378,14 +388,22 @@ class EnhancedVoiceController(VoiceController):
                     logger.warning(f"❌ PocketSphinx识别失败: {e}")
             
             if not text or not text.strip():
-                logger.debug("未识别到有效语音")
+                logger.warning("❌ 所有语音识别引擎都未能识别到有效内容")
+                logger.info("💡 建议: 1)说话声音大一些 2)靠近麦克风 3)在安静环境中说话")
+                
+                # 播放识别失败提示
+                self.speak_text("抱歉，我没有听清楚，请再说一遍~")
                 return
                 
             text = text.strip()
-            logger.info(f"识别到语音: '{text}'")
+            logger.info(f"🎯 最终识别结果: '{text}'")
             
             # 更新交互时间
             self.last_interaction_time = time.time()
+            
+            # 显示识别成功的反馈
+            if self.expression_controller:
+                self.expression_controller.show_processing_animation()
             
             # 检查是否是结束对话的命令
             if any(word in text for word in ['再见', '结束对话', '停止', '退出', '睡觉']):
