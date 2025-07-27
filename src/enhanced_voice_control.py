@@ -768,8 +768,17 @@ class EnhancedVoiceController(VoiceController):
     
     def get_conversation_status(self):
         """获取对话状态"""
+        # 确定当前状态
+        if not self.conversation_mode:
+            current_state = "stopped"
+        elif self.wake_word_detected:
+            current_state = "conversation"
+        else:
+            current_state = "waiting"
+            
         return {
             'conversation_mode': self.conversation_mode,
+            'state': current_state,
             'wake_word_detected': self.wake_word_detected,
             'wake_word_active': self.wake_word_active,
             'ai_manager_active': self.ai_conversation_manager.is_active() if self.ai_conversation_manager else False,
