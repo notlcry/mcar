@@ -1,14 +1,23 @@
-# 简化的ALSA配置 - 避免复杂设备引用错误
+# ALSA配置 - 直接使用硬件设备
+# 默认播放设备
 pcm.!default {
-    type pulse
+    type plug
+    slave {
+        pcm "hw:0,0"
+        rate 44100
+        channels 2
+        format S16_LE
+    }
 }
 
+# 默认控制设备
 ctl.!default {
-    type pulse
+    type hw
+    card 0
 }
 
-# 备用配置 - 如果PulseAudio不可用
-pcm.backup {
+# 录音设备 (USB麦克风)
+pcm.mic {
     type plug
     slave {
         pcm "hw:1,0"
