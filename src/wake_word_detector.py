@@ -99,13 +99,54 @@ class WakeWordDetector:
         """初始化Porcupine引擎"""
         try:
             if self.access_key and self.keyword_paths:
-                # 使用自定义唤醒词
-                self.porcupine = pvporcupine.create(
-                    access_key=self.access_key,
-                    keyword_paths=self.keyword_paths,
-                    sensitivities=self.sensitivities
-                )
-                logger.info("Porcupine初始化成功（自定义唤醒词）")
+                # 检查是否是中文唤醒词
+                is_chinese = any('_zh_' in path for path in self.keyword_paths)
+                
+                if is_chinese:
+                    # 中文唤醒词需要中文模型
+                    logger.info("检测到中文唤醒词，查找中文语言模型...")
+                    
+                    # 查找中文模型文件
+                    chinese_model_paths = [
+                        'models/porcupine/porcupine_params_zh.pv',
+                        '../models/porcupine/porcupine_params_zh.pv'
+                    ]
+                    
+                    chinese_model = None
+                    for model_path in chinese_model_paths:
+                        if os.path.exists(model_path):
+                            chinese_model = model_path
+                            break
+                    
+                    if chinese_model:
+                        logger.info(f"找到中文模型: {chinese_model}")
+                        self.porcupine = pvporcupine.create(
+                            access_key=self.access_key,
+                            keyword_paths=self.keyword_paths,
+                            model_path=chinese_model,
+                            sensitivities=self.sensitivities
+                        )
+                        logger.info("Porcupine初始化成功（中文唤醒词）")
+                    else:
+                        logger.warning("未找到中文语言模型，使用内置关键词")
+                        logger.info("💡 运行 ./setup_chinese_wake_word.sh 下载中文模型")
+                        self.keyword_paths = None
+                        self.keywords = ['picovoice']
+                        
+                        self.porcupine = pvporcupine.create(
+                            access_key=self.access_key,
+                            keywords=self.keywords,
+                            sensitivities=self.sensitivities
+                        )
+                        logger.info("Porcupine初始化成功（内置关键词: picovoice）")
+                else:
+                    # 英文自定义唤醒词
+                    self.porcupine = pvporcupine.create(
+                        access_key=self.access_key,
+                        keyword_paths=self.keyword_paths,
+                        sensitivities=self.sensitivities
+                    )
+                    logger.info("Porcupine初始化成功（自定义唤醒词）")
             else:
                 # 使用内置关键词
                 try:
