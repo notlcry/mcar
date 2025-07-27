@@ -528,19 +528,19 @@ class EnhancedVoiceController(VoiceController):
                 logger.info(f"离线模式TTS: {text}")
                 return
             
-            # 创建临时文件
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
-                temp_file_path = temp_file.name
+            # 创建临时MP3文件（edge-tts默认格式）
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
+                mp3_file_path = temp_file.name
             
-            # 使用edge-tts生成语音
-            asyncio.run(self._async_generate_speech(text, temp_file_path))
+            # 使用edge-tts生成MP3语音
+            asyncio.run(self._async_generate_speech(text, mp3_file_path))
             
-            # 播放音频文件
-            self._play_audio_file_pygame(temp_file_path)
+            # 播放音频文件（会自动转换MP3到WAV）
+            self._play_audio_file_pygame(mp3_file_path)
             
             # 清理临时文件
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
+            if os.path.exists(mp3_file_path):
+                os.unlink(mp3_file_path)
             
         except Exception as e:
             logger.error(f"语音生成播放失败: {e}")
