@@ -161,13 +161,20 @@ def test_simple_wake_word():
         )
         
         print("\n🎙️  开始监听唤醒词 'kk'...")
+        print("💡 发音提示: 说 '可可' 或 'kk' (类似英文的 'kay kay')")
         print("按 Ctrl+C 停止")
+        
+        frame_count = 0
+        last_audio_level = 0
         
         try:
             while True:
                 # 读取音频数据
                 data = stream.read(mic_frame_length, exception_on_overflow=False)
                 audio_array = np.frombuffer(data, dtype=np.int16)
+                
+                # 计算音频电平 (用于检测是否有声音输入)
+                audio_level = np.abs(audio_array).mean()
                 
                 # 重采样
                 if sample_rate != porcupine_rate:
@@ -184,9 +191,19 @@ def test_simple_wake_word():
                     keyword_index = porcupine.process(frame)
                     
                     if keyword_index >= 0:
-                        print(f"\n🎉 检测到唤醒词！")
+                        print(f"\n🎉 检测到唤醒词！索引: {keyword_index}")
                         print(f"🗣️  回应: 你好！")
                         time.sleep(1)  # 避免重复检测
+                
+                # 每100帧显示一次音频状态
+                frame_count += 1
+                if frame_count % 100 == 0:
+                    if audio_level > 100:  # 有声音输入
+                        print(f"🎤 音频输入正常 (电平: {audio_level:.0f})")
+                    elif frame_count % 500 == 0:  # 每500帧提醒一次
+                        print(f"🔇 等待音频输入... (当前电平: {audio_level:.0f})")
+                
+                last_audio_level = audio_level
                 
         except KeyboardInterrupt:
             print("\n\n🛑 停止测试...")
