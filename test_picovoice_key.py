@@ -68,12 +68,47 @@ def test_picovoice_key():
         
         print(f"\n🧪 测试Porcupine初始化...")
         
-        porcupine = pvporcupine.create(
-            access_key=access_key,
-            keyword_paths=found_files[:1]  # 只测试第一个文件
-        )
+        # 检查是否是中文唤醒词
+        test_file = found_files[0]
+        is_chinese = '_zh_' in test_file
         
-        print("✅ Porcupine初始化成功！")
+        if is_chinese:
+            print("🇨🇳 检测到中文唤醒词，查找中文模型...")
+            
+            # 查找中文模型
+            chinese_model_paths = [
+                'models/porcupine/porcupine_params_zh.pv',
+                '../models/porcupine/porcupine_params_zh.pv',
+                'src/wake_words/porcupine_params_zh.pv',
+                'wake_words/porcupine_params_zh.pv'
+            ]
+            
+            chinese_model = None
+            for model_path in chinese_model_paths:
+                if os.path.exists(model_path):
+                    chinese_model = model_path
+                    print(f"✅ 找到中文模型: {model_path}")
+                    break
+            
+            if chinese_model:
+                porcupine = pvporcupine.create(
+                    access_key=access_key,
+                    keyword_paths=[test_file],
+                    model_path=chinese_model
+                )
+                print("✅ Porcupine中文初始化成功！")
+            else:
+                print("❌ 未找到中文模型文件")
+                print("💡 请运行: ./setup_chinese_wake_word.sh")
+                return False
+        else:
+            # 英文唤醒词
+            porcupine = pvporcupine.create(
+                access_key=access_key,
+                keyword_paths=[test_file]
+            )
+            print("✅ Porcupine英文初始化成功！")
+        
         print(f"   采样率: {porcupine.sample_rate}")
         print(f"   帧长度: {porcupine.frame_length}")
         
