@@ -270,7 +270,7 @@ class SimpleWakeWordDetector:
                 
                 # 识别语音
                 try:
-                    text = self.recognizer.recognize_sphinx(audio, language='zh-cn')
+                    text = self.recognizer.recognize_sphinx(audio)
                     text = text.lower().strip()
                     
                     # 检查是否包含唤醒词

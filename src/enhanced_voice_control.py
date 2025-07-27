@@ -20,6 +20,7 @@ from voice_control import VoiceController
 from ai_conversation import AIConversationManager
 from wake_word_detector import WakeWordDetector, SimpleWakeWordDetector
 from whisper_integration import get_whisper_recognizer
+from vosk_recognizer import VoskRecognizer
 import asyncio
 import edge_tts
 import pygame
@@ -67,6 +68,10 @@ class EnhancedVoiceController(VoiceController):
         self.whisper_recognizer = None
         self.use_whisper = self._initialize_whisper()
         
+        # Vosk语音识别（中文离线）
+        self.vosk_recognizer = None
+        self.use_vosk = self._initialize_vosk()
+        
         # 音频处理队列
         self.audio_queue = queue.Queue()
         self.tts_queue = queue.Queue()
@@ -107,10 +112,24 @@ class EnhancedVoiceController(VoiceController):
                 logger.info("Whisper语音识别初始化成功")
                 return True
             else:
-                logger.warning("Whisper初始化失败，将使用PocketSphinx")
+                logger.warning("Whisper初始化失败，将使用其他识别方式")
                 return False
         except Exception as e:
-            logger.error(f"Whisper初始化失败: {e}")
+            logger.warning(f"Whisper不可用，跳过模型加载")
+            return False
+    
+    def _initialize_vosk(self):
+        """初始化Vosk中文语音识别"""
+        try:
+            self.vosk_recognizer = VoskRecognizer()
+            if self.vosk_recognizer.is_available:
+                logger.info("Vosk中文语音识别初始化成功")
+                return True
+            else:
+                logger.warning("Vosk初始化失败，将使用其他识别方式")
+                return False
+        except Exception as e:
+            logger.warning(f"Vosk不可用: {e}")
             return False
     
     def _initialize_audio_playback(self):
@@ -292,17 +311,44 @@ class EnhancedVoiceController(VoiceController):
             if self.expression_controller:
                 self.expression_controller.show_thinking_animation()
             
-            # 语音识别 - 优先使用Whisper
+            # 语音识别 - 优先级顺序：Vosk(中文) > Whisper > Google(在线) > PocketSphinx(英文)
             text = None
-            if self.use_whisper and self.whisper_recognizer:
-                text = self._whisper_recognize_from_audio(audio)
             
-            # 备选：使用PocketSphinx
+            # 1. 优先使用Vosk进行中文识别
+            if self.use_vosk and self.vosk_recognizer:
+                try:
+                    text = self.vosk_recognizer.recognize_from_speech_recognition_audio(audio)
+                    if text:
+                        logger.info(f"Vosk识别成功: {text}")
+                except Exception as e:
+                    logger.debug(f"Vosk识别失败: {e}")
+            
+            # 2. 备选：使用Whisper
+            if not text and self.use_whisper and self.whisper_recognizer:
+                try:
+                    text = self._whisper_recognize_from_audio(audio)
+                    if text:
+                        logger.info(f"Whisper识别成功: {text}")
+                except Exception as e:
+                    logger.debug(f"Whisper识别失败: {e}")
+            
+            # 3. 备选：使用Google在线识别（支持中文）
             if not text:
                 try:
-                    text = self.recognizer.recognize_sphinx(audio, language='zh-cn')
-                except:
-                    pass
+                    text = self.recognizer.recognize_google(audio, language='zh-CN')
+                    if text:
+                        logger.info(f"Google识别成功: {text}")
+                except Exception as e:
+                    logger.debug(f"Google识别失败: {e}")
+            
+            # 4. 最后备选：使用PocketSphinx（英文）
+            if not text:
+                try:
+                    text = self.recognizer.recognize_sphinx(audio)
+                    if text:
+                        logger.info(f"PocketSphinx识别成功: {text}")
+                except Exception as e:
+                    logger.debug(f"PocketSphinx识别失败: {e}")
             
             if not text or not text.strip():
                 logger.debug("未识别到有效语音")

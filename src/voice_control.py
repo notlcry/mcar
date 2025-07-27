@@ -133,8 +133,8 @@ class VoiceController:
     def _process_audio(self, audio):
         """处理音频数据"""
         try:
-            # 使用离线识别（CMU Sphinx）
-            text = self.recognizer.recognize_sphinx(audio, language='zh-cn')
+            # 使用离线识别（CMU Sphinx）- 使用默认英文模型
+            text = self.recognizer.recognize_sphinx(audio)
             logger.info(f"识别到语音: '{text}'")
             
             # 处理识别到的文本

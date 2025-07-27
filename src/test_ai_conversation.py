@@ -168,7 +168,7 @@ def test_speech_recognition():
         
         # 尝试使用PocketSphinx
         try:
-            text = recognizer.recognize_sphinx(audio, language='zh-cn')
+            text = recognizer.recognize_sphinx(audio)
             print(f"✅ 识别结果: {text}")
             return True
         except sr.UnknownValueError:
