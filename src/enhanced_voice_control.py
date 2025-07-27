@@ -564,32 +564,61 @@ class EnhancedVoiceController(VoiceController):
             raise
     
     def _play_audio_file_pygame(self, file_path):
-        """使用pygame播放音频文件"""
+        """使用可靠的音频播放方式"""
         try:
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
-            
-            # 等待播放完成
-            while pygame.mixer.music.get_busy():
-                time.sleep(0.1)
-                
+            # 优先使用我们修复的可靠播放方式
+            self._play_audio_file_reliable(file_path)
         except Exception as e:
-            logger.error(f"pygame音频播放失败: {e}")
+            logger.error(f"可靠播放失败: {e}")
             # 备选方案
             self._play_audio_file_system(file_path)
     
-    def _play_audio_file_system(self, file_path):
-        """使用系统命令播放音频文件"""
+    def _play_audio_file_reliable(self, file_path):
+        """使用修复后的可靠播放方式"""
         try:
-            # 首先尝试aplay（树莓派常用）
-            result = subprocess.run(['aplay', file_path], 
-                                  capture_output=True, 
-                                  timeout=10)
+            # 如果是MP3文件，需要转换为WAV
+            if file_path.endswith('.mp3'):
+                wav_path = file_path.replace('.mp3', '.wav')
+                
+                # 使用ffmpeg转换
+                convert_cmd = [
+                    'ffmpeg', '-i', file_path,
+                    '-ar', '44100',  # 采样率44100Hz
+                    '-ac', '1',      # 单声道
+                    '-f', 'wav',     # WAV格式
+                    '-y',            # 覆盖输出文件
+                    wav_path
+                ]
+                
+                result = subprocess.run(convert_cmd, capture_output=True, text=True)
+                if result.returncode == 0:
+                    file_path = wav_path
+                else:
+                    logger.warning(f"音频转换失败，尝试直接播放: {result.stderr}")
+            
+            # 使用修复后的可靠播放命令
+            result = subprocess.run(['/usr/bin/aplay', '-D', 'hw:0,0', file_path], 
+                                  capture_output=True, text=True, timeout=15)
+            
             if result.returncode == 0:
+                logger.debug("音频播放成功")
+                # 清理转换的WAV文件
+                if file_path.endswith('.wav') and file_path != file_path.replace('.mp3', '.wav'):
+                    try:
+                        os.unlink(file_path)
+                    except:
+                        pass
                 return
-        except:
-            pass
-        
+            else:
+                logger.error(f"音频播放失败: {result.stderr}")
+                raise Exception(f"aplay failed: {result.stderr}")
+                
+        except Exception as e:
+            logger.error(f"可靠播放方式失败: {e}")
+            raise
+    
+    def _play_audio_file_system(self, file_path):
+        """使用系统命令播放音频文件（备选方案）"""
         try:
             # 备选：使用mpg123
             subprocess.run(['mpg123', file_path], 
