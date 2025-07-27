@@ -12,8 +12,6 @@ import time
 import logging
 import os
 from typing import Callable, Optional
-import numpy as np
-from scipy import signal
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, 
@@ -94,34 +92,11 @@ class WakeWordDetector:
         # 线程控制
         self.detection_thread = None
         
-        # 音频参数
-        self.microphone_sample_rate = 44100  # USB麦克风采样率
-        self.porcupine_sample_rate = 16000   # Porcupine要求的采样率
-        self.audio_buffer = []
+        # 音频参数 - 直接使用Porcupine要求的采样率
+        self.target_sample_rate = 16000   # 直接使用16kHz，避免重采样问题
         
         # 初始化Porcupine
         self._initialize_porcupine()
-    
-    def _resample_audio(self, audio_data: np.ndarray, original_rate: int, target_rate: int) -> np.ndarray:
-        """
-        重采样音频数据
-        Args:
-            audio_data: 原始音频数据
-            original_rate: 原始采样率
-            target_rate: 目标采样率
-        Returns:
-            重采样后的音频数据
-        """
-        if original_rate == target_rate:
-            return audio_data
-        
-        # 计算重采样后的样本数
-        num_samples = int(len(audio_data) * target_rate / original_rate)
-        
-        # 使用scipy进行重采样
-        resampled_data = signal.resample(audio_data, num_samples)
-        
-        return resampled_data.astype(np.int16)
     
     def _initialize_porcupine(self):
         """初始化Porcupine引擎"""
@@ -215,41 +190,15 @@ class WakeWordDetector:
         try:
             pa = pyaudio.PyAudio()
             
-            # 尝试找到可用的输入设备
-            input_device_index = None
-            for i in range(pa.get_device_count()):
-                try:
-                    info = pa.get_device_info_by_index(i)
-                    if info['maxInputChannels'] > 0:
-                        # 测试设备是否可用
-                        test_stream = pa.open(
-                            format=pyaudio.paInt16,
-                            channels=1,
-                            rate=int(info['defaultSampleRate']),
-                            input=True,
-                            input_device_index=i,
-                            frames_per_buffer=1024
-                        )
-                        test_stream.close()
-                        input_device_index = i
-                        self.microphone_sample_rate = int(info['defaultSampleRate'])
-                        logger.info(f"使用音频设备 {i}: {info['name']} ({self.microphone_sample_rate} Hz)")
-                        break
-                except:
-                    continue
+            # 直接使用Porcupine要求的采样率创建音频流
+            logger.info(f"使用Porcupine原生采样率: {self.target_sample_rate} Hz")
             
-            if input_device_index is None:
-                logger.error("未找到可用的音频输入设备")
-                return False
-            
-            # 使用找到的设备创建音频流
             self.audio_stream = pa.open(
-                rate=self.microphone_sample_rate,
+                rate=self.target_sample_rate,
                 channels=1,
                 format=pyaudio.paInt16,
                 input=True,
-                input_device_index=input_device_index,
-                frames_per_buffer=1024
+                frames_per_buffer=self.porcupine.frame_length
             )
             
             # 启动检测线程
@@ -274,76 +223,33 @@ class WakeWordDetector:
         logger.info("唤醒词检测已停止")
     
     def _detection_worker(self):
-        """检测工作线程"""
+        """检测工作线程 - 使用官方推荐方式"""
         logger.info("唤醒词检测线程启动")
-        logger.info(f"麦克风采样率: {self.microphone_sample_rate} Hz")
-        logger.info(f"Porcupine采样率: {self.porcupine_sample_rate} Hz")
-        
-        # 计算需要读取的帧数（基于麦克风采样率）
-        mic_frame_length = int(self.porcupine.frame_length * self.microphone_sample_rate / self.porcupine_sample_rate)
+        logger.info(f"使用采样率: {self.target_sample_rate} Hz")
+        logger.info(f"帧长度: {self.porcupine.frame_length}")
         
         while self.is_listening:
             try:
-                # 读取音频数据（使用麦克风采样率）
-                try:
-                    pcm_data = self.audio_stream.read(mic_frame_length, exception_on_overflow=False)
-                except Exception as read_error:
-                    logger.warning(f"音频读取错误: {read_error}")
-                    time.sleep(0.01)
-                    continue
+                # 读取音频数据（直接使用Porcupine帧长度）
+                pcm_data = self.audio_stream.read(self.porcupine.frame_length, exception_on_overflow=False)
                 
-                if len(pcm_data) == 0:
-                    time.sleep(0.01)
-                    continue
+                # 使用官方推荐的格式转换
+                pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm_data)
                 
-                # 转换为numpy数组
-                try:
-                    audio_array = np.frombuffer(pcm_data, dtype=np.int16)
-                except Exception as convert_error:
-                    logger.warning(f"音频转换错误: {convert_error}")
-                    continue
+                # 检测唤醒词
+                keyword_index = self.porcupine.process(pcm)
                 
-                if len(audio_array) == 0:
-                    continue
-                
-                # 重采样到Porcupine要求的采样率
-                try:
-                    if self.microphone_sample_rate != self.porcupine_sample_rate:
-                        resampled_audio = self._resample_audio(
-                            audio_array, 
-                            self.microphone_sample_rate, 
-                            self.porcupine_sample_rate
-                        )
-                    else:
-                        resampled_audio = audio_array
-                except Exception as resample_error:
-                    logger.warning(f"重采样错误: {resample_error}")
-                    continue
-                
-                # 确保数据长度正确
-                if len(resampled_audio) >= self.porcupine.frame_length:
-                    try:
-                        # 取前面的帧长度数据
-                        pcm_frame = resampled_audio[:self.porcupine.frame_length]
-                        
-                        # 检测唤醒词
-                        keyword_index = self.porcupine.process(pcm_frame)
-                        
-                        if keyword_index >= 0:
-                            logger.info(f"🎉 检测到唤醒词，索引: {keyword_index}")
-                            
-                            # 调用回调函数
-                            if self.detection_callback:
-                                self.detection_callback(keyword_index)
-                    except Exception as process_error:
-                        logger.warning(f"Porcupine处理错误: {process_error}")
-                        continue
+                if keyword_index >= 0:
+                    logger.info(f"🎉 检测到唤醒词 '快快'，索引: {keyword_index}")
+                    
+                    # 调用回调函数
+                    if self.detection_callback:
+                        self.detection_callback(keyword_index)
                 
             except Exception as e:
                 logger.error(f"唤醒词检测错误: {e}")
-                time.sleep(0.1)
+                time.sleep(0.01)
                 
-                # 如果连续出错，尝试重新初始化音频流
                 if not self.is_listening:
                     break
         
