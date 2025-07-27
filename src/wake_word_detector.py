@@ -49,7 +49,7 @@ class WakeWordDetector:
             else:
                 logger.warning("自定义唤醒词配置无效，使用内置关键词")
                 self.keyword_paths = None
-                self.keywords = [pvporcupine.KEYWORDS['computer']]
+                self.keywords = ['picovoice']
         else:
             # 尝试自动查找自定义唤醒词
             wake_words_dir = '../wake_words'
@@ -66,7 +66,7 @@ class WakeWordDetector:
                 # 如果没有访问密钥或自定义文件，使用内置关键词
                 logger.warning("未设置PICOVOICE_ACCESS_KEY或未找到自定义唤醒词，将使用内置关键词")
                 self.keyword_paths = None
-                self.keywords = [pvporcupine.KEYWORDS['computer']]
+                self.keywords = ['picovoice']
         
         # 设置灵敏度
         if self.keyword_paths:
@@ -103,10 +103,11 @@ class WakeWordDetector:
                 # 使用内置关键词
                 try:
                     self.porcupine = pvporcupine.create(
+                        access_key=self.access_key,
                         keywords=self.keywords,
                         sensitivities=self.sensitivities
                     )
-                    logger.info("Porcupine初始化成功（内置关键词: computer）")
+                    logger.info("Porcupine初始化成功（内置关键词: picovoice）")
                 except Exception as e:
                     logger.error(f"Porcupine初始化失败: {e}")
                     self.porcupine = None
@@ -193,10 +194,13 @@ class WakeWordDetector:
     
     def __del__(self):
         """析构函数"""
-        self.stop_detection()
-        
-        if self.porcupine:
-            self.porcupine.delete()
+        try:
+            self.stop_detection()
+            
+            if hasattr(self, 'porcupine') and self.porcupine:
+                self.porcupine.delete()
+        except:
+            pass  # 忽略析构时的错误
 
 class SimpleWakeWordDetector:
     """简单的唤醒词检测器 - 基于语音识别的备选方案"""
