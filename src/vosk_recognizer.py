@@ -11,6 +11,8 @@ import pyaudio
 from typing import Optional, Dict, Any
 import threading
 import time
+import numpy as np
+from scipy import signal
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +140,36 @@ class VoskRecognizer:
             logger.error(f"Vosk识别失败: {e}")
             return None
     
+    def _resample_audio(self, audio_data: bytes, original_rate: int, target_rate: int) -> bytes:
+        """
+        重采样音频数据
+        Args:
+            audio_data: 原始音频数据
+            original_rate: 原始采样率
+            target_rate: 目标采样率
+        Returns:
+            重采样后的音频数据
+        """
+        if original_rate == target_rate:
+            return audio_data
+        
+        try:
+            # 转换为numpy数组
+            audio_array = np.frombuffer(audio_data, dtype=np.int16)
+            
+            # 计算重采样后的样本数
+            num_samples = int(len(audio_array) * target_rate / original_rate)
+            
+            # 使用scipy进行重采样
+            resampled_array = signal.resample(audio_array, num_samples)
+            
+            # 转换回int16并返回bytes
+            return resampled_array.astype(np.int16).tobytes()
+            
+        except Exception as e:
+            logger.error(f"音频重采样失败: {e}")
+            return audio_data
+
     def recognize_from_speech_recognition_audio(self, sr_audio) -> Optional[str]:
         """
         从SpeechRecognition的AudioData对象识别
@@ -156,10 +188,13 @@ class VoskRecognizer:
             # 获取音频数据
             audio_data = sr_audio.get_raw_data()
             logger.debug(f"音频数据长度: {len(audio_data)} 字节")
+            logger.debug(f"原始采样率: {sr_audio.sample_rate} Hz")
             
-            # 确保采样率匹配
+            # 处理采样率不匹配的情况
             if sr_audio.sample_rate != self.sample_rate:
-                logger.warning(f"采样率不匹配: {sr_audio.sample_rate} != {self.sample_rate}")
+                logger.info(f"🔄 重采样: {sr_audio.sample_rate} Hz → {self.sample_rate} Hz")
+                audio_data = self._resample_audio(audio_data, sr_audio.sample_rate, self.sample_rate)
+                logger.debug(f"重采样后数据长度: {len(audio_data)} 字节")
             
             result = self.recognize_from_audio_data(audio_data)
             if result:

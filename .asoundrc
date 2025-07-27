@@ -1,14 +1,19 @@
-# ALSA配置文件 - USB麦克风支持
-# 这个文件应该复制到用户主目录 ~/.asoundrc
-
-# 默认PCM设备 - 直接使用USB麦克风
+# 简化的ALSA配置 - 避免复杂设备引用错误
 pcm.!default {
-    type plug
-    slave.pcm "hw:1,0"
+    type pulse
 }
 
-# 控制设备
 ctl.!default {
-    type hw
-    card 1
+    type pulse
+}
+
+# 备用配置 - 如果PulseAudio不可用
+pcm.backup {
+    type plug
+    slave {
+        pcm "hw:1,0"
+        rate 16000
+        channels 1
+        format S16_LE
+    }
 }
