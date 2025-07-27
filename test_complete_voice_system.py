@@ -31,6 +31,12 @@ def test_complete_voice_system():
     
     try:
         from wake_word_detector import WakeWordDetector
+        
+        # 确保能找到audio_player模块
+        import sys
+        if '.' not in sys.path:
+            sys.path.insert(0, '.')
+        
         from audio_player import speak
         
         # 创建唤醒词检测器
@@ -113,6 +119,11 @@ def test_audio_player_basic():
     print("=" * 40)
     
     try:
+        # 确保能找到audio_player模块
+        import sys
+        if '.' not in sys.path:
+            sys.path.insert(0, '.')
+        
         from audio_player import speak, play_audio
         import numpy as np
         
