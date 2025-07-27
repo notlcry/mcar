@@ -52,8 +52,15 @@ class WakeWordDetector:
                 self.keywords = ['picovoice']
         else:
             # 尝试自动查找自定义唤醒词
-            wake_words_dir = '../wake_words'
-            if os.path.exists(wake_words_dir):
+            wake_words_dirs = ['wake_words', '../wake_words']
+            wake_words_dir = None
+            
+            for dir_path in wake_words_dirs:
+                if os.path.exists(dir_path):
+                    wake_words_dir = dir_path
+                    break
+            
+            if wake_words_dir:
                 ppn_files = [os.path.join(wake_words_dir, f) for f in os.listdir(wake_words_dir) if f.endswith('.ppn')]
                 if ppn_files and self.access_key and self.access_key != 'your_picovoice_access_key_here':
                     self.keyword_paths = ppn_files
