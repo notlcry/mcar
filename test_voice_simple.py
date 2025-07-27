@@ -44,8 +44,8 @@ def simple_speak(text):
         # 生成语音文件
         audio_file = asyncio.run(generate_speech())
         
-        # 使用aplay播放
-        result = subprocess.run(['aplay', '-D', 'hw:0,0', audio_file], 
+        # 直接使用完整路径
+        result = subprocess.run(['/usr/bin/aplay', '-D', 'hw:0,0', audio_file], 
                               capture_output=True, text=True, timeout=10)
         
         # 清理
