@@ -119,22 +119,35 @@ class VoskRecognizer:
             # 重置识别器
             self.recognizer.Reset()
             
-            # 处理音频数据
-            if self.recognizer.AcceptWaveform(audio_data):
-                result = json.loads(self.recognizer.Result())
-                text = result.get('text', '').strip()
-                if text:
-                    logger.info(f"Vosk识别结果: {text}")
-                    return text
+            # 分块处理音频数据 (关键修复)
+            chunk_size = 4096
+            final_result = None
             
-            # 获取部分结果
-            partial_result = json.loads(self.recognizer.PartialResult())
-            partial_text = partial_result.get('partial', '').strip()
-            if partial_text:
-                logger.debug(f"Vosk部分识别: {partial_text}")
-                return partial_text
+            for i in range(0, len(audio_data), chunk_size):
+                chunk = audio_data[i:i+chunk_size]
+                
+                if self.recognizer.AcceptWaveform(chunk):
+                    # 有完整识别结果
+                    result = json.loads(self.recognizer.Result())
+                    text = result.get('text', '').strip()
+                    if text:
+                        logger.debug(f"Vosk块识别结果: {text}")
+                        final_result = text
+                        break
             
-            return None
+            # 关键修复：处理完所有数据后获取最终结果
+            if not final_result:
+                final_result_json = self.recognizer.FinalResult()
+                final_result_dict = json.loads(final_result_json)
+                final_result = final_result_dict.get('text', '').strip()
+                logger.debug(f"Vosk最终结果: {final_result}")
+            
+            if final_result:
+                logger.info(f"✅ Vosk识别成功: {final_result}")
+                return final_result
+            else:
+                logger.debug("🔇 Vosk未识别到内容")
+                return None
             
         except Exception as e:
             logger.error(f"Vosk识别失败: {e}")
