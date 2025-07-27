@@ -1,0 +1,24 @@
+# ALSA配置 - 强制使用正确的设备
+# 默认播放设备：强制使用Card 0 (树莓派内置音频)
+pcm.!default {
+    type hw
+    card 0
+    device 0
+}
+
+# 默认控制设备：使用Card 0
+ctl.!default {
+    type hw
+    card 0
+}
+
+# 录音设备：使用Card 1 (USB麦克风)
+pcm.mic {
+    type plug
+    slave {
+        pcm "hw:1,0"
+        rate 16000
+        channels 1
+        format S16_LE
+    }
+}
