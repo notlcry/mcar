@@ -79,7 +79,7 @@ def test_sensitivity(sensitivity_value):
             frames_per_buffer=mic_frame_length
         )
         
-        print(f"🎙️  请说 'kk' 或 '可可' (测试10秒)")
+        print(f"🎙️  请说 '快快' (kuai kuai) (测试10秒)")
         
         start_time = time.time()
         detections = 0

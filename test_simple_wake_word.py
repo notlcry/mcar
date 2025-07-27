@@ -160,8 +160,8 @@ def test_simple_wake_word():
             frames_per_buffer=mic_frame_length
         )
         
-        print("\n🎙️  开始监听唤醒词 'kk'...")
-        print("💡 发音提示: 说 '可可' 或 'kk' (类似英文的 'kay kay')")
+        print("\n🎙️  开始监听唤醒词 '快快'...")
+        print("💡 发音提示: 请说 '快快' (kuai kuai)")
         print("按 Ctrl+C 停止")
         
         frame_count = 0
