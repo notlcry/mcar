@@ -176,9 +176,9 @@ class EnhancedVoiceController(VoiceController):
             self.tts_thread = threading.Thread(target=self._tts_worker, daemon=True)
             self.tts_thread.start()
         
-        # 启动对话处理线程
+        # 启动状态机线程（修复音频流冲突）
         if not self.conversation_thread or not self.conversation_thread.is_alive():
-            self.conversation_thread = threading.Thread(target=self._conversation_worker, daemon=True)
+            self.conversation_thread = threading.Thread(target=self._state_machine_worker, daemon=True)
             self.conversation_thread.start()
         
         # 启动超时检查线程
@@ -215,20 +215,23 @@ class EnhancedVoiceController(VoiceController):
         self.speak_text("对话模式已关闭，再见~")
     
     def _on_wake_word_detected(self, keyword_index):
-        """唤醒词检测回调"""
+        """唤醒词检测回调 - 修复版本"""
         if not self.conversation_mode:
             return
             
         logger.info(f"🎤 检测到唤醒词！索引: {keyword_index}")
-        logger.info("🤖 AI桌宠已唤醒，准备开始对话...")
+        logger.info("🤖 AI桌宠已唤醒，停止唤醒词检测，开始对话...")
+        
+        # 关键修复：停止唤醒词检测，避免音频流冲突
+        if self.wake_word_detector and self.wake_word_active:
+            self.wake_word_detector.stop_detection()
+            self.wake_word_active = False
+            logger.info("🔇 已停止唤醒词检测")
         
         self.wake_word_detected = True
         self.last_interaction_time = time.time()
         
-        logger.info("✅ 唤醒状态已设置，开始语音交互模式")
-        logger.info(f"检测到唤醒词，索引: {keyword_index}")
-        
-        # 提供即时音频确认（在1秒内）
+        # 提供即时音频确认
         self.speak_text("我在听，请说~", priority=True)
         
         # 如果有表情控制器，显示聆听状态
@@ -246,6 +249,14 @@ class EnhancedVoiceController(VoiceController):
                     logger.info("对话超时，返回待机模式")
                     self.wake_word_detected = False
                     
+                    # 重启唤醒词检测（关键修复）
+                    if self.wake_word_detector and not self.wake_word_active:
+                        if self.wake_word_detector.start_detection(self._on_wake_word_detected):
+                            self.wake_word_active = True
+                            logger.info("🔔 已重启唤醒词检测")
+                        else:
+                            logger.warning("重启唤醒词检测失败")
+                    
                     # 如果有表情控制器，显示空闲状态
                     if self.expression_controller:
                         self.expression_controller.show_idle_animation()
@@ -255,6 +266,108 @@ class EnhancedVoiceController(VoiceController):
             except Exception as e:
                 logger.error(f"超时检查错误: {e}")
                 time.sleep(5)
+
+    def _state_machine_worker(self):
+        """状态机工作线程 - 修复音频流冲突"""
+        logger.info("状态机线程启动")
+        
+        while self.conversation_mode:
+            try:
+                if self.wake_word_detected:
+                    # 处于对话状态，进行语音识别
+                    self._handle_conversation_round()
+                else:
+                    # 等待唤醒，短暂休眠
+                    time.sleep(0.5)
+                    
+            except Exception as e:
+                logger.error(f"状态机错误: {e}")
+                time.sleep(1)
+        
+        logger.info("状态机线程结束")
+    
+    def _handle_conversation_round(self):
+        """处理一轮对话"""
+        try:
+            logger.info("🎙️ 等待用户说话...")
+            
+            # 录音（此时唤醒词检测已停止，只有这一个音频流）
+            recognizer = sr.Recognizer()
+            microphone = sr.Microphone()
+            
+            with microphone as source:
+                recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                audio = recognizer.listen(source, timeout=8, phrase_time_limit=10)
+            
+            # 语音识别
+            text = self._recognize_speech_enhanced(audio)
+            if not text or not text.strip():
+                logger.info("未识别到有效语音")
+                return
+            
+            logger.info(f"📝 用户说: {text}")
+            self.last_interaction_time = time.time()
+            
+            # AI处理
+            self._process_conversation_text(text)
+            
+        except sr.WaitTimeoutError:
+            logger.info("录音超时，继续等待")
+        except Exception as e:
+            logger.error(f"对话轮次错误: {e}")
+    
+    def _recognize_speech_enhanced(self, audio):
+        """增强的语音识别"""
+        # 1. 优先使用修复后的Vosk中文识别
+        if self.use_vosk and self.vosk_recognizer:
+            try:
+                result = self.vosk_recognizer.recognize_from_speech_recognition_audio(audio)
+                if result and result.strip():
+                    logger.info(f"✅ Vosk识别成功: {result}")
+                    return result
+            except Exception as e:
+                logger.error(f"Vosk识别失败: {e}")
+        
+        # 2. 备选：Google在线识别
+        try:
+            recognizer = sr.Recognizer()
+            result = recognizer.recognize_google(audio, language='zh-CN')
+            if result and result.strip():
+                logger.info(f"✅ Google识别成功: {result}")
+                return result
+        except Exception as e:
+            logger.error(f"Google识别失败: {e}")
+        
+        return None
+    
+    def _process_conversation_text(self, text):
+        """处理对话文本"""
+        try:
+            # 显示思考状态
+            if self.expression_controller:
+                self.expression_controller.show_thinking_animation()
+            
+            # AI处理
+            context = self.ai_conversation_manager.process_user_input(text)
+            
+            if context and context.ai_response:
+                logger.info(f"🤖 AI回复: {context.ai_response}")
+                
+                # 语音输出
+                self.speak_text(context.ai_response)
+                
+                # 显示情感
+                if context.emotion_detected:
+                    logger.info(f"😊 检测情感: {context.emotion_detected}")
+                
+                # 更新交互时间
+                self.last_interaction_time = time.time()
+            else:
+                logger.warning("AI处理失败")
+                self.speak_text("抱歉，我没听清楚，能再说一遍吗？")
+                
+        except Exception as e:
+            logger.error(f"对话处理错误: {e}")
 
     def listen_continuously(self):
         """持续监听语音命令和对话"""
