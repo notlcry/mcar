@@ -63,3 +63,5 @@ monitoring.csv
 health_check.json
 performance_report.json
 diagnostic_info.txt
+
+src/__pycache__/

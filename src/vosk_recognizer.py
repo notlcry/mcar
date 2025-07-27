@@ -147,21 +147,30 @@ class VoskRecognizer:
             识别结果文本
         """
         if not self.is_available:
+            logger.debug("Vosk不可用，跳过识别")
             return None
         
         try:
+            logger.debug("🎤 Vosk开始处理音频数据...")
+            
             # 获取音频数据
             audio_data = sr_audio.get_raw_data()
+            logger.debug(f"音频数据长度: {len(audio_data)} 字节")
             
             # 确保采样率匹配
             if sr_audio.sample_rate != self.sample_rate:
-                # 需要重采样，这里简化处理
                 logger.warning(f"采样率不匹配: {sr_audio.sample_rate} != {self.sample_rate}")
             
-            return self.recognize_from_audio_data(audio_data)
+            result = self.recognize_from_audio_data(audio_data)
+            if result:
+                logger.debug(f"🎯 Vosk识别原始结果: '{result}'")
+            else:
+                logger.debug("🔇 Vosk未识别到内容")
+            
+            return result
             
         except Exception as e:
-            logger.error(f"从SpeechRecognition音频识别失败: {e}")
+            logger.error(f"❌ Vosk从SpeechRecognition音频识别失败: {e}")
             return None
     
     def create_stream_recognizer(self):

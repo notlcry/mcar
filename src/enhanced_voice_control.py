@@ -84,7 +84,15 @@ class EnhancedVoiceController(VoiceController):
         # 音频播放初始化
         self._initialize_audio_playback()
         
-        logger.info("增强语音控制器初始化完成")
+        # 显示语音识别引擎状态总结
+        logger.info("🎤 增强语音控制器初始化完成")
+        logger.info("=" * 50)
+        logger.info("📊 语音识别引擎状态:")
+        logger.info(f"   🇨🇳 Vosk (中文离线):     {'✅ 可用' if self.use_vosk else '❌ 不可用'}")
+        logger.info(f"   🌍 Whisper (多语言):     {'✅ 可用' if self.use_whisper else '❌ 不可用'}")
+        logger.info(f"   🌐 Google (在线):        ✅ 可用")
+        logger.info(f"   🇺🇸 PocketSphinx (英文): ✅ 可用")
+        logger.info("=" * 50)
     
     def _initialize_wake_word_detection(self):
         """初始化唤醒词检测"""
@@ -120,16 +128,18 @@ class EnhancedVoiceController(VoiceController):
     
     def _initialize_vosk(self):
         """初始化Vosk中文语音识别"""
+        logger.info("🎤 正在初始化Vosk中文语音识别...")
         try:
             self.vosk_recognizer = VoskRecognizer()
             if self.vosk_recognizer.is_available:
-                logger.info("Vosk中文语音识别初始化成功")
+                logger.info("🎉 Vosk中文语音识别初始化成功！")
+                logger.info("📋 语音识别优先级: Vosk(中文) > Whisper > Google > PocketSphinx")
                 return True
             else:
-                logger.warning("Vosk初始化失败，将使用其他识别方式")
+                logger.warning("❌ Vosk初始化失败，将使用其他识别方式")
                 return False
         except Exception as e:
-            logger.warning(f"Vosk不可用: {e}")
+            logger.warning(f"❌ Vosk不可用: {e}")
             return False
     
     def _initialize_audio_playback(self):
@@ -313,42 +323,59 @@ class EnhancedVoiceController(VoiceController):
             
             # 语音识别 - 优先级顺序：Vosk(中文) > Whisper > Google(在线) > PocketSphinx(英文)
             text = None
+            logger.info("🔍 开始语音识别，尝试顺序: Vosk → Whisper → Google → PocketSphinx")
             
             # 1. 优先使用Vosk进行中文识别
             if self.use_vosk and self.vosk_recognizer:
+                logger.info("🎯 尝试使用Vosk进行中文识别...")
                 try:
                     text = self.vosk_recognizer.recognize_from_speech_recognition_audio(audio)
                     if text:
-                        logger.info(f"Vosk识别成功: {text}")
+                        logger.info(f"✅ Vosk识别成功: '{text}' (中文离线)")
+                    else:
+                        logger.info("⚠️  Vosk返回空结果")
                 except Exception as e:
-                    logger.debug(f"Vosk识别失败: {e}")
+                    logger.warning(f"❌ Vosk识别失败: {e}")
+            else:
+                logger.warning("⚠️  Vosk不可用，跳过")
             
             # 2. 备选：使用Whisper
             if not text and self.use_whisper and self.whisper_recognizer:
+                logger.info("🎯 尝试使用Whisper识别...")
                 try:
                     text = self._whisper_recognize_from_audio(audio)
                     if text:
-                        logger.info(f"Whisper识别成功: {text}")
+                        logger.info(f"✅ Whisper识别成功: '{text}' (多语言离线)")
+                    else:
+                        logger.info("⚠️  Whisper返回空结果")
                 except Exception as e:
-                    logger.debug(f"Whisper识别失败: {e}")
+                    logger.warning(f"❌ Whisper识别失败: {e}")
+            else:
+                logger.info("⚠️  Whisper不可用，跳过")
             
             # 3. 备选：使用Google在线识别（支持中文）
             if not text:
+                logger.info("🎯 尝试使用Google在线识别...")
                 try:
                     text = self.recognizer.recognize_google(audio, language='zh-CN')
                     if text:
-                        logger.info(f"Google识别成功: {text}")
+                        logger.info(f"✅ Google识别成功: '{text}' (中文在线)")
+                    else:
+                        logger.info("⚠️  Google返回空结果")
                 except Exception as e:
-                    logger.debug(f"Google识别失败: {e}")
+                    logger.warning(f"❌ Google识别失败: {e}")
             
             # 4. 最后备选：使用PocketSphinx（英文）
             if not text:
+                logger.info("🎯 尝试使用PocketSphinx识别...")
                 try:
                     text = self.recognizer.recognize_sphinx(audio)
                     if text:
-                        logger.info(f"PocketSphinx识别成功: {text}")
+                        logger.info(f"✅ PocketSphinx识别成功: '{text}' (英文离线)")
+                    else:
+                        logger.info("⚠️  PocketSphinx返回空结果")
                 except Exception as e:
-                    logger.debug(f"PocketSphinx识别失败: {e}")
+                    logger.warning(f"❌ PocketSphinx识别失败: {e}")
             
             if not text or not text.strip():
                 logger.debug("未识别到有效语音")
