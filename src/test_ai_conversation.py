@@ -118,7 +118,7 @@ def test_wake_word_detection():
     else:
         print("🎯 使用简单检测器")
         detector = SimpleWakeWordDetector()
-        print("请说 '喵喵小车' 进行测试（10秒内）")
+        print("请说 '快快' 进行测试（10秒内）")
     
     try:
         if detector.start_detection(on_wake_word):

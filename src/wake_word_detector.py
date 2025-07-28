@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-唤醒词检测模块 - 使用Porcupine进行"喵喵小车"唤醒词检测
+唤醒词检测模块 - 使用Porcupine进行"快快"唤醒词检测
 支持自定义唤醒词和灵敏度调节
 """
 
@@ -274,7 +274,7 @@ class SimpleWakeWordDetector:
         Args:
             wake_words: 唤醒词列表
         """
-        self.wake_words = wake_words or ["喵喵小车", "小车", "机器人"]
+        self.wake_words = wake_words or ["快快", "小车", "机器人"]
         self.is_listening = False
         self.detection_callback = None
         
@@ -372,7 +372,7 @@ def test_wake_word_detection():
     else:
         print("Porcupine不可用，使用简单检测器")
         detector = SimpleWakeWordDetector()
-        print("请说 '喵喵小车' 来测试唤醒词检测")
+        print("请说 '快快' 来测试唤醒词检测")
     
     try:
         if detector.start_detection(on_wake_word_detected):

@@ -120,7 +120,7 @@ class EnhancedVoiceController(VoiceController):
                 logger.info("使用Porcupine进行唤醒词检测")
                 return True
             else:
-                self.wake_word_detector = SimpleWakeWordDetector(["喵喵小车", "小车", "机器人"])
+                self.wake_word_detector = SimpleWakeWordDetector(["快快", "小车", "机器人"])
                 logger.info("使用简单检测器进行唤醒词检测")
                 return False
         except Exception as e:
@@ -194,7 +194,7 @@ class EnhancedVoiceController(VoiceController):
         logger.info("AI对话模式已启动")
         
         # 播放启动提示音
-        self.speak_text("你好！我是快快，说'喵喵小车'来唤醒我吧~")
+        self.speak_text("你好！我是快快，说'快快'来唤醒我吧~")
         
         return True
     

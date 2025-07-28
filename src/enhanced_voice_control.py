@@ -114,7 +114,7 @@ class EnhancedVoiceController(VoiceController):
                 return True
             else:
                 # 备选：使用简单检测器
-                self.wake_word_detector = SimpleWakeWordDetector(["喵喵小车", "小车", "机器人"])
+                self.wake_word_detector = SimpleWakeWordDetector(["快快", "小车", "机器人"])
                 logger.info("使用简单检测器进行唤醒词检测")
                 return False
         except Exception as e:
@@ -205,7 +205,7 @@ class EnhancedVoiceController(VoiceController):
         logger.info("AI对话模式已启动")
         
         # 播放启动提示音并提供即时音频确认
-        self.speak_text("你好！我是快快，说'喵喵小车'来唤醒我吧~")
+        self.speak_text("你好！我是快快，说'快快'来唤醒我吧~")
         
         return True
     
@@ -1020,7 +1020,7 @@ def test_enhanced_voice_control():
         if enhanced_voice.start_conversation_mode():
             print("\n对话模式启动成功")
             print("功能说明:")
-            print("- 说'喵喵小车'来唤醒机器人")
+            print("- 说'快快'来唤醒机器人")
             print("- 唤醒后可以进行自然对话")
             print("- 说'再见'来结束对话")
             print("- 30秒无交互会自动返回待机")

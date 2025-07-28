@@ -176,7 +176,7 @@ def create_config_template():
     
     config_template = {
         "voice_control": {
-            "wake_word": "喵喵小车",
+            "wake_word": "快快",
             "conversation_timeout": 30,
             "use_whisper": True,
             "whisper_model": "base",

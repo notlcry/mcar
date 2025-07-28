@@ -226,7 +226,7 @@ class MultimodalTestHarness:
                 description="从唤醒词到完整对话的端到端测试",
                 expected_modalities=[ModalityType.VOICE, ModalityType.VISUAL, ModalityType.EMOTION],
                 input_sequence=[
-                    {'type': 'wake_word', 'data': '喵喵小车'},
+                    {'type': 'wake_word', 'data': '快快'},
                     {'type': 'speech_input', 'data': '你好'},
                     {'type': 'wait', 'duration': 1.0},
                     {'type': 'speech_input', 'data': '转个圈'},

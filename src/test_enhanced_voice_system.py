@@ -134,7 +134,7 @@ def test_wake_word_detection():
             porcupine_available = False
         
         # 测试简单检测器
-        simple_detector = SimpleWakeWordDetector(["喵喵小车", "小车"])
+        simple_detector = SimpleWakeWordDetector(["快快", "小车"])
         if simple_detector.microphone:
             print("简单唤醒词检测器可用")
             simple_available = True
@@ -207,7 +207,7 @@ def run_interactive_test():
         # 启动对话模式
         if voice_controller.start_conversation_mode():
             print("\n对话系统已启动！")
-            print("说'喵喵小车'来唤醒机器人")
+            print("说'快快'来唤醒机器人")
             print("唤醒后可以进行自然对话")
             print("说'再见'来结束对话")
             print("按Ctrl+C退出测试")

@@ -173,7 +173,7 @@ class EnhancedVoiceController(VoiceController):
 ```
 
 **Wake Word Integration**:
-- Porcupine integration for "喵喵小车" detection
+- Porcupine integration for "快快" detection
 - Seamless transition from wake word to conversation mode
 - Audio quality optimization for better recognition
 

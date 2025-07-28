@@ -43,7 +43,7 @@ class VoiceConfig:
     
     def __post_init__(self):
         if self.wake_words is None:
-            self.wake_words = ["喵喵小车", "小车", "机器人"]
+            self.wake_words = ["快快", "小车", "机器人"]
 
 @dataclass
 class PersonalityConfig:
