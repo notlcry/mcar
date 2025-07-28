@@ -60,6 +60,11 @@ class EnhancedVoiceController(VoiceController):
         self.conversation_timeout = 30.0  # 对话超时时间（秒）
         self.last_interaction_time = time.time()
         
+        # 音频流控制（防回音）
+        self.is_playing_audio = False
+        self.audio_lock = threading.Lock()
+        self.recording_paused = False
+        
         # 语音合成设置
         self.tts_voice = "zh-CN-XiaoxiaoNeural"  # 中文女声
         self.tts_rate = "+0%"
@@ -322,6 +327,12 @@ class EnhancedVoiceController(VoiceController):
     def _handle_conversation_round(self):
         """处理一轮对话"""
         try:
+            # 检查是否正在播放音频，避免录制回音
+            if self.is_playing_audio or self.recording_paused:
+                logger.debug("🔇 跳过录音（正在播放或已暂停）")
+                time.sleep(0.5)  # 短暂等待
+                return
+            
             logger.info("🎙️ 等待用户说话...")
             
             # 录音（此时唤醒词检测已停止，只有这一个音频流）
@@ -329,8 +340,18 @@ class EnhancedVoiceController(VoiceController):
             microphone = sr.Microphone()
             
             with microphone as source:
+                # 再次检查播放状态（防止录音过程中开始播放）
+                if self.is_playing_audio or self.recording_paused:
+                    logger.debug("🔇 录音过程中检测到播放，跳过")
+                    return
+                
                 recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = recognizer.listen(source, timeout=8, phrase_time_limit=10)
+            
+            # 最后检查：避免处理可能的回音音频
+            if self.is_playing_audio or self.recording_paused:
+                logger.debug("🔇 跳过可能的回音音频处理")
+                return
             
             # 语音识别
             text = self._recognize_speech_enhanced(audio)
@@ -350,7 +371,12 @@ class EnhancedVoiceController(VoiceController):
             logger.error(f"对话轮次错误: {e}")
     
     def _recognize_speech_enhanced(self, audio):
-        """增强的语音识别"""
+        """增强的语音识别（带回音检测）"""
+        # 检查是否正在播放，避免识别回音
+        if self.is_playing_audio or self.recording_paused:
+            logger.debug("🔇 跳过语音识别（正在播放音频）")
+            return ""
+        
         # 1. 优先使用修复后的Vosk中文识别
         if self.use_vosk and self.vosk_recognizer:
             try:
@@ -421,11 +447,27 @@ class EnhancedVoiceController(VoiceController):
             try:
                 # 只有在唤醒状态下才进行语音识别
                 if self.conversation_mode and self.wake_word_detected:
+                    # 检查是否正在播放音频，避免录制回音
+                    if self.is_playing_audio or self.recording_paused:
+                        logger.debug("🔇 跳过录音（正在播放或已暂停）")
+                        time.sleep(0.5)  # 短暂等待
+                        continue
+                    
                     with self.microphone as source:
                         logger.debug("正在监听对话...")
+                        # 再次检查播放状态（防止录音过程中开始播放）
+                        if self.is_playing_audio or self.recording_paused:
+                            logger.debug("🔇 录音过程中检测到播放，跳过")
+                            continue
+                        
                         # 对话模式下优化音频捕获
                         self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                         audio = self.recognizer.listen(source, timeout=3, phrase_time_limit=10)
+                    
+                    # 最后检查：避免处理可能的回音音频
+                    if self.is_playing_audio or self.recording_paused:
+                        logger.debug("🔇 跳过可能的回音音频处理")
+                        continue
                     
                     # 将音频放入处理队列
                     self.audio_queue.put(audio)
@@ -707,33 +749,74 @@ class EnhancedVoiceController(VoiceController):
             except Exception as e:
                 logger.error(f"TTS处理错误: {e}")
     
+    def _pause_recording(self):
+        """暂停录音以防回音"""
+        with self.audio_lock:
+            if not self.recording_paused:
+                logger.debug("🔇 暂停录音（防回音）")
+                self.recording_paused = True
+                # 如果有活跃的识别流，暂停它们
+                if hasattr(self, 'vosk_recognizer') and self.vosk_recognizer:
+                    # Vosk识别器不需要特殊暂停，它是基于数据流的
+                    pass
+    
+    def _resume_recording(self):
+        """恢复录音"""
+        with self.audio_lock:
+            if self.recording_paused:
+                logger.debug("🎤 恢复录音")
+                self.recording_paused = False
+                # 恢复识别流
+                if hasattr(self, 'vosk_recognizer') and self.vosk_recognizer:
+                    pass
+    
     def _generate_and_play_speech(self, text):
-        """生成并播放语音"""
+        """生成并播放语音（带回音防护）"""
         try:
             # 检查是否在离线模式
             if self.safety_manager and self.safety_manager.safety_state.offline_mode_active:
-                # 离线模式下使用简单的文本输出
                 logger.info(f"离线模式TTS: {text}")
                 return
             
-            # 创建临时MP3文件（edge-tts默认格式）
-            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
-                mp3_file_path = temp_file.name
+            # 设置播放状态并暂停录音
+            with self.audio_lock:
+                self.is_playing_audio = True
+            self._pause_recording()
             
-            # 使用edge-tts生成MP3语音
-            asyncio.run(self._async_generate_speech(text, mp3_file_path))
-            
-            # 播放音频文件（会自动转换MP3到WAV）
-            self._play_audio_file_pygame(mp3_file_path)
-            
-            # 清理临时文件
-            if os.path.exists(mp3_file_path):
-                os.unlink(mp3_file_path)
+            try:
+                # 创建临时MP3文件
+                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
+                    mp3_file_path = temp_file.name
+                
+                # 使用edge-tts生成MP3语音
+                asyncio.run(self._async_generate_speech(text, mp3_file_path))
+                
+                # 播放音频文件
+                self._play_audio_file_pygame(mp3_file_path)
+                
+                # 播放完成后等待一小段时间
+                time.sleep(0.5)  # 等待音频完全播放完成
+                
+                # 清理临时文件
+                if os.path.exists(mp3_file_path):
+                    os.unlink(mp3_file_path)
+                    
+            finally:
+                # 恢复录音状态
+                with self.audio_lock:
+                    self.is_playing_audio = False
+                self._resume_recording()
+                logger.debug("🔊 音频播放完成，已恢复录音")
             
         except Exception as e:
             logger.error(f"语音生成播放失败: {e}")
             
-            # 如果有安全管理器，记录TTS失败
+            # 确保在异常情况下也恢复录音
+            with self.audio_lock:
+                self.is_playing_audio = False
+            self._resume_recording()
+            
+            # 记录TTS失败
             if self.safety_manager:
                 self.safety_manager.handle_api_failure("tts_error", 0)
     
