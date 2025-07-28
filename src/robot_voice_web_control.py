@@ -665,12 +665,20 @@ def toggle_ai_conversation():
                 logger.info("AI对话管理器已初始化")
             
             if not enhanced_voice_controller:
+                # 检查是否需要使用测试模式（避免音频流冲突）
+                use_test_mode = os.getenv('VOICE_TEST_MODE', 'false').lower() == 'true'
+                
                 enhanced_voice_controller = EnhancedVoiceController(
                     robot=clbrobot, 
                     ai_conversation_manager=ai_conversation_manager,
-                    safety_manager=safety_manager
+                    safety_manager=safety_manager,
+                    test_mode=use_test_mode
                 )
-                logger.info("增强语音控制器已初始化")
+                
+                if use_test_mode:
+                    logger.info("增强语音控制器已初始化（测试模式）")
+                else:
+                    logger.info("增强语音控制器已初始化（正常模式）")
             
             # 启动AI对话模式
             if enhanced_voice_controller.start_conversation_mode():
