@@ -258,7 +258,7 @@
 **响应示例**:
 ```json
 {
-    "name": "圆滚滚",
+    "name": "快快",
     "user_name": "小明",
     "traits": {
         "friendliness": 0.8,

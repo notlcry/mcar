@@ -293,7 +293,7 @@ def test_complete_memory_system():
         
         # 保存当前配置
         config = memory_manager.load_user_config()
-        config['personality']['name'] = '学习型圆滚滚'
+        config['personality']['name'] = '学习型快快'
         config['personality']['user_name'] = user_name
         config['personality']['learned_preferences'] = {
             'speed': speed_pref,

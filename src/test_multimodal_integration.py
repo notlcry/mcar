@@ -283,7 +283,7 @@ class MultimodalTestHarness:
                 description="测试说话时的嘴部动画同步",
                 expected_modalities=[ModalityType.VOICE, ModalityType.VISUAL],
                 input_sequence=[
-                    {'type': 'speak_with_animation', 'text': '你好，我是圆滚滚！', 'duration': 2.0},
+                    {'type': 'speak_with_animation', 'text': '你好，我是快快！', 'duration': 2.0},
                     {'type': 'wait', 'duration': 0.5},
                     {'type': 'speak_with_animation', 'text': '让我们一起玩吧！', 'duration': 1.5}
                 ],

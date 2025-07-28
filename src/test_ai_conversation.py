@@ -70,7 +70,7 @@ def test_tts():
         import subprocess
         
         async def test_edge_tts():
-            text = "你好，我是圆滚滚，这是TTS测试"
+            text = "你好，我是快快，这是TTS测试"
             voice = "zh-CN-XiaoxiaoNeural"
             
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:

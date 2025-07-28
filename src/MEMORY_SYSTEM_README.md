@@ -250,7 +250,7 @@ ai_manager.stop_conversation_mode()
 ```json
 {
   "personality": {
-    "name": "圆滚滚",
+    "name": "快快",
     "user_name": "小明",
     "friendliness": 0.9,
     "energy_level": 0.8

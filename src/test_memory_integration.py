@@ -39,7 +39,7 @@ def test_memory_integration():
         
         # 存储测试对话
         test_conversations = [
-            ("你好，圆滚滚！", "你好！我是圆滚滚，很高兴见到你~", "happy"),
+            ("你好，快快！", "你好！我是快快，很高兴见到你~", "happy"),
             ("我喜欢听音乐", "哇，我也喜欢音乐！你喜欢什么类型的音乐呢？", "excited"),
             ("请你转个圈", "好的！我来转个圈给你看~", "happy"),
             ("你记得我喜欢什么吗？", "当然记得！你喜欢听音乐呢~", "happy")
@@ -109,7 +109,7 @@ def test_memory_integration():
         print(f"用户配置: {config}")
         
         # 更新配置
-        config['personality']['name'] = '测试圆滚滚'
+        config['personality']['name'] = '测试快快'
         config['personality']['friendliness'] = 0.95
         success = memory_manager.save_user_config(config)
         print(f"保存配置: {'✓' if success else '✗'}")
@@ -203,7 +203,7 @@ def test_ai_conversation_with_memory():
         # 更新配置以反映用户偏好
         if 'personality' not in config:
             config['personality'] = {}
-        config['personality']['name'] = '圆滚滚'
+        config['personality']['name'] = '快快'
         config['personality']['user_name'] = '小明'
         config['personality']['friendliness'] = 0.9
         

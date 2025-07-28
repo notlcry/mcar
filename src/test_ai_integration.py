@@ -92,7 +92,7 @@ class AIIntegrationTester:
         print("\n=== 测试AI对话功能 ===")
         
         test_messages = [
-            "你好，圆滚滚！",
+            "你好，快快！",
             "你能前进吗？",
             "我很开心！",
             "转个圈给我看看"

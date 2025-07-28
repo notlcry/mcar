@@ -297,7 +297,7 @@ def test_config():
     
     # 测试更新个性
     config_manager.update_personality(
-        name="测试圆滚滚",
+        name="测试快快",
         friendliness=0.9
     )
     

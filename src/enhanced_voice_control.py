@@ -200,7 +200,7 @@ class EnhancedVoiceController(VoiceController):
         logger.info("AI对话模式已启动")
         
         # 播放启动提示音并提供即时音频确认
-        self.speak_text("你好！我是圆滚滚，说'喵喵小车'来唤醒我吧~")
+        self.speak_text("你好！我是快快，说'喵喵小车'来唤醒我吧~")
         
         return True
     
@@ -972,7 +972,7 @@ def demo_tts_voices():
     enhanced_voice.tts_thread.start()
     
     voices = enhanced_voice.get_available_voices()
-    test_text = "你好，我是圆滚滚，很高兴认识你！"
+    test_text = "你好，我是快快，很高兴认识你！"
     
     for voice in voices:
         print(f"\n测试语音: {voice['description']}")

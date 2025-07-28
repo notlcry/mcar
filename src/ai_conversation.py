@@ -70,7 +70,7 @@ class AIConversationManager:
         # 个性化设置（结合用户偏好）
         personality_name = self.user_config.get('personality', {}).get('name', self.personality_config.name)
         self.personality_prompt = self.ai_config.personality_prompt.replace(
-            "圆滚滚", personality_name
+            "快快", personality_name
         )
         
         # 根据用户偏好调整个性提示
@@ -591,7 +591,7 @@ def test_ai_conversation():
         
         # 测试对话
         test_inputs = [
-            "你好，圆滚滚！",
+            "你好，快快！",
             "你能做什么动作？",
             "我今天很开心！",
             "你会转圈吗？"

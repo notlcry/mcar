@@ -194,7 +194,7 @@ class EnhancedVoiceController(VoiceController):
         logger.info("AI对话模式已启动")
         
         # 播放启动提示音
-        self.speak_text("你好！我是圆滚滚，说'喵喵小车'来唤醒我吧~")
+        self.speak_text("你好！我是快快，说'喵喵小车'来唤醒我吧~")
         
         return True
     

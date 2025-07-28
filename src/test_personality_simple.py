@@ -61,7 +61,7 @@ class MovementPattern:
 @dataclass 
 class PersonalityProfile:
     """个性档案数据模型"""
-    name: str = "圆滚滚"
+    name: str = "快快"
     traits: Dict[str, float] = field(default_factory=lambda: {
         "friendliness": 0.8,
         "energy_level": 0.7,

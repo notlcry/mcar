@@ -239,7 +239,7 @@ class MockComponents:
             self.conversation_history = []
             self.current_session_id = None
             self.mock_responses = {
-                "你好": "你好！我是圆滚滚，很高兴见到你！",
+                "你好": "你好！我是快快，很高兴见到你！",
                 "转个圈": "好的，我来转个圈给你看！",
                 "我们走吧": "好的，我们一起出发吧！",
                 "你开心吗": "当然开心啦！和你聊天我很快乐呢！",
@@ -384,7 +384,7 @@ class IntegrationTestSuite:
     def test_speech_to_text_conversion(self):
         """测试语音转文本 - 需求1.2"""
         try:
-            test_input = "你好，圆滚滚"
+            test_input = "你好，快快"
             
             # 模拟语音输入
             recognized_text = self.mock_voice.simulate_speech_input(test_input)
@@ -593,7 +593,7 @@ class IntegrationTestSuite:
         try:
             # 模拟说话
             speech_duration = 2.0
-            speech_text = "你好，我是圆滚滚！"
+            speech_text = "你好，我是快快！"
             
             # 开始说话动画
             self.mock_expression.animate_speaking(speech_duration)

@@ -174,11 +174,11 @@ class CorrectAIConversationSystem:
         # 播放唤醒提示
         if self.tts_method:
             try:
-                self.tts_method("你好！我是圆滚滚，有什么可以帮你的吗？")
+                self.tts_method("你好！我是快快，有什么可以帮你的吗？")
             except:
-                print("🤖 你好！我是圆滚滚，有什么可以帮你的吗？")
+                print("🤖 你好！我是快快，有什么可以帮你的吗？")
         else:
-            print("🤖 你好！我是圆滚滚，有什么可以帮你的吗？")
+            print("🤖 你好！我是快快，有什么可以帮你的吗？")
     
     def handle_conversation(self):
         """状态2: 处理对话（单一音频流）"""

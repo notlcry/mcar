@@ -713,7 +713,7 @@ class MemoryManager:
                 # 返回默认配置
                 default_config = {
                     'personality': {
-                        'name': '圆滚滚',
+                        'name': '快快',
                         'friendliness': 0.8,
                         'energy_level': 0.7,
                         'curiosity': 0.6,
@@ -979,7 +979,7 @@ def test_memory_manager():
     # 测试对话存储
     print("\n2. 测试对话存储")
     test_conversations = [
-        ("你好，圆滚滚！", "你好！我是圆滚滚，很高兴见到你~", "happy"),
+        ("你好，快快！", "你好！我是快快，很高兴见到你~", "happy"),
         ("你能做什么？", "我可以和你聊天，还能做各种动作呢！", "excited"),
         ("我喜欢音乐", "哇，我也喜欢音乐！你喜欢什么类型的音乐呢？", "happy"),
         ("转个圈给我看看", "好的！我来转个圈~", "excited")
