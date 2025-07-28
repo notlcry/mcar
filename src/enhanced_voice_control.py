@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class EnhancedVoiceController(VoiceController):
     """增强的语音控制器，支持AI对话和唤醒词检测"""
     
-    def __init__(self, robot=None, ai_conversation_manager=None, expression_controller=None, safety_manager=None):
+    def __init__(self, robot=None, ai_conversation_manager=None, expression_controller=None, safety_manager=None, test_mode=False):
         """
         初始化增强语音控制器
         Args:
@@ -41,8 +41,12 @@ class EnhancedVoiceController(VoiceController):
             ai_conversation_manager: AI对话管理器实例
             expression_controller: 表情控制器实例
             safety_manager: 安全管理器实例
+            test_mode: 测试模式，禁用音频流以避免段错误
         """
         super().__init__(robot)
+        
+        # 测试模式标志
+        self.test_mode = test_mode
         
         self.ai_conversation_manager = ai_conversation_manager or AIConversationManager(robot, expression_controller, safety_manager)
         self.expression_controller = expression_controller
@@ -163,22 +167,28 @@ class EnhancedVoiceController(VoiceController):
         self.conversation_mode = True
         self.last_interaction_time = time.time()
         
-        # 启动唤醒词检测
-        if self.wake_word_detector and not self.wake_word_active:
+        # 启动唤醒词检测（测试模式下跳过）
+        if not self.test_mode and self.wake_word_detector and not self.wake_word_active:
             if self.wake_word_detector.start_detection(self._on_wake_word_detected):
                 self.wake_word_active = True
                 logger.info("唤醒词检测已启动")
             else:
                 logger.warning("唤醒词检测启动失败")
+        elif self.test_mode:
+            logger.info("测试模式：跳过唤醒词检测启动")
         
         # 启动TTS处理线程
         if not self.tts_thread or not self.tts_thread.is_alive():
             self.tts_thread = threading.Thread(target=self._tts_worker, daemon=True)
             self.tts_thread.start()
         
-        # 启动状态机线程（修复音频流冲突）
+        # 启动状态机线程（测试模式下使用安全版本）
         if not self.conversation_thread or not self.conversation_thread.is_alive():
-            self.conversation_thread = threading.Thread(target=self._state_machine_worker, daemon=True)
+            if self.test_mode:
+                self.conversation_thread = threading.Thread(target=self._safe_state_machine_worker, daemon=True)
+                logger.info("测试模式：使用安全状态机")
+            else:
+                self.conversation_thread = threading.Thread(target=self._state_machine_worker, daemon=True)
             self.conversation_thread.start()
         
         # 启动超时检查线程
@@ -285,6 +295,28 @@ class EnhancedVoiceController(VoiceController):
                 time.sleep(1)
         
         logger.info("状态机线程结束")
+    
+    def _safe_state_machine_worker(self):
+        """安全状态机工作线程 - 测试模式，不使用音频流"""
+        logger.info("安全状态机线程启动（测试模式）")
+        
+        while self.conversation_mode:
+            try:
+                # 测试模式下只做状态管理，不进行实际音频操作
+                if self.wake_word_detected:
+                    logger.info("🎙️ 模拟对话状态（测试模式）")
+                    # 模拟处理时间
+                    time.sleep(2)
+                    # 可以在这里添加模拟的AI对话处理
+                else:
+                    # 等待状态
+                    time.sleep(1)
+                    
+            except Exception as e:
+                logger.error(f"安全状态机错误: {e}")
+                time.sleep(1)
+        
+        logger.info("安全状态机线程结束")
     
     def _handle_conversation_round(self):
         """处理一轮对话"""
