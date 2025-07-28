@@ -24,6 +24,7 @@ from vosk_recognizer import VoskRecognizer
 import asyncio
 import edge_tts
 import pygame
+import re
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, 
@@ -642,18 +643,42 @@ class EnhancedVoiceController(VoiceController):
         except Exception as e:
             logger.error(f"执行情感动作失败: {e}")
     
+    def _filter_tts_text(self, text):
+        """过滤TTS文本，移除括号中的表情和动作描述"""
+        if not text:
+            return text
+        
+        # 移除各种类型的括号内容
+        # 匹配圆括号内容：(表情描述)
+        text = re.sub(r'\([^)]*\)', '', text)
+        # 匹配方括号内容：[动作描述]
+        text = re.sub(r'\[[^\]]*\]', '', text)
+        # 匹配中文圆括号：（表情）
+        text = re.sub(r'（[^）]*）', '', text)
+        # 匹配中文方括号：【动作】
+        text = re.sub(r'【[^】]*】', '', text)
+        
+        # 清理多余的空白字符
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        return text
+    
     def speak_text(self, text, priority=False):
         """将文本转换为语音并播放"""
         if text:
-            if priority:
-                # 优先级高的消息插入队列前端
-                temp_queue = queue.Queue()
-                temp_queue.put(text)
-                while not self.tts_queue.empty():
-                    temp_queue.put(self.tts_queue.get())
-                self.tts_queue = temp_queue
-            else:
-                self.tts_queue.put(text)
+            # 过滤掉括号中的表情和动作描述
+            filtered_text = self._filter_tts_text(text)
+            
+            if filtered_text:  # 确保过滤后还有内容
+                if priority:
+                    # 优先级高的消息插入队列前端
+                    temp_queue = queue.Queue()
+                    temp_queue.put(filtered_text)
+                    while not self.tts_queue.empty():
+                        temp_queue.put(self.tts_queue.get())
+                    self.tts_queue = temp_queue
+                else:
+                    self.tts_queue.put(filtered_text)
     
     def _tts_worker(self):
         """TTS处理工作线程"""

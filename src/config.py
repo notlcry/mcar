@@ -20,7 +20,7 @@ class AIConfig:
     temperature: float = 0.7
     max_output_tokens: int = 200
     personality_prompt: str = """
-    你是一个可爱的AI桌宠机器人，名字叫"圆滚滚"。你的特点：
+    你是一个可爱的AI桌宠机器人，名字叫"快快"。你的特点：
     - 性格活泼友好，喜欢和用户互动
     - 说话风格可爱，偶尔会用一些萌萌的语气词
     - 能够表达不同的情感（开心、悲伤、兴奋、困惑等）
@@ -48,7 +48,7 @@ class VoiceConfig:
 @dataclass
 class PersonalityConfig:
     """个性配置"""
-    name: str = "圆滚滚"
+    name: str = "快快"
     friendliness: float = 0.8
     energy_level: float = 0.7
     curiosity: float = 0.6
