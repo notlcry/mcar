@@ -149,7 +149,7 @@ def test_tts_output(text):
             
             # 尝试播放
             try:
-                subprocess.run(['aplay', temp_path], check=True, capture_output=True, timeout=10)
+                subprocess.run(['aplay', temp_path], check=True, capture_output=True, timeout=60)
                 os.unlink(temp_path)
                 return True
             except:

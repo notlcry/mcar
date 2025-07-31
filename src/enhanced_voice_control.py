@@ -869,7 +869,7 @@ class EnhancedVoiceController(VoiceController):
             
             # 使用修复后的可靠播放命令
             result = subprocess.run(['/usr/bin/aplay', '-D', 'hw:0,0', file_path], 
-                                  capture_output=True, text=True, timeout=15)
+                                  capture_output=True, text=True, timeout=60)
             
             if result.returncode == 0:
                 logger.debug("音频播放成功")
