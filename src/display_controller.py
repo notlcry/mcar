@@ -150,6 +150,7 @@ class DisplayController:
             'confused': self._create_confused_face,
             'excited': self._create_excited_face,
             'sleeping': self._create_sleeping_face,
+            'neutral': self._create_neutral_face,
             'listening': self._create_listening_animation,
             'speaking': self._create_speaking_animation
         }
@@ -257,104 +258,109 @@ class DisplayController:
     # ================== 表情绘制函数 ==================
     
     def _create_happy_face(self, draw):
-        """绘制开心表情"""
-        # 脸部轮廓 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制开心表情 - 整个屏幕是头，只用眼睛表达"""
+        # 开心的眼睛：弯曲向上的弧线（笑眯眯的眼睛）
+        # 左眼
+        draw.arc([20, 20, 50, 44], start=0, end=180, fill=1, width=3)
         
-        # 眼睛 (缩小)
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)  # 左眼
-        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)  # 右眼
+        # 右眼  
+        draw.arc([78, 20, 108, 44], start=0, end=180, fill=1, width=3)
         
-        # 笑脸嘴巴 (缩小)
-        draw.arc([50, 40, 75, 55], start=0, end=180, fill=1, width=2)
-        
-        # 腮红 (缩小)
-        draw.ellipse([42, 35, 47, 40], outline=1, fill=0)
-        draw.ellipse([78, 35, 83, 40], outline=1, fill=0)
+        # 可选：添加一些开心的装饰
+        # 小星星表示开心
+        self._draw_small_star(draw, 15, 15)
+        self._draw_small_star(draw, 113, 15)
     
     def _create_sad_face(self, draw):
-        """绘制悲伤表情"""
-        # 脸部轮廓 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制悲伤表情 - 整个屏幕是头，只用眼睛表达"""
+        # 悲伤的眼睛：向下弯曲的弧线
+        # 左眼
+        draw.arc([20, 25, 50, 40], start=180, end=360, fill=1, width=3)
         
-        # 眼睛 (缩小)
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
-        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
+        # 右眼
+        draw.arc([78, 25, 108, 40], start=180, end=360, fill=1, width=3)
         
-        # 眼泪 (缩小)
-        draw.ellipse([48, 32, 50, 38], outline=1, fill=1)
-        draw.ellipse([73, 32, 75, 38], outline=1, fill=1)
-        
-        # 悲伤嘴巴 (缩小)
-        draw.arc([50, 45, 75, 55], start=180, end=360, fill=1, width=2)
+        # 眼泪
+        draw.ellipse([30, 42, 34, 50], outline=1, fill=1)  # 左眼泪
+        draw.ellipse([94, 42, 98, 50], outline=1, fill=1)  # 右眼泪
     
     def _create_thinking_face(self, draw):
-        """绘制思考表情"""
-        # 脸部轮廓 (缩小到合适大小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制思考表情 - 整个屏幕是头，只用眼睛表达"""
+        # 思考的眼睛：向上看的小眼睛
+        # 左眼（向上）
+        draw.ellipse([25, 20, 35, 25], outline=1, fill=1)
         
-        # 眼睛 (向上看) - 缩小
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
-        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
+        # 右眼（向上）
+        draw.ellipse([93, 20, 103, 25], outline=1, fill=1)
         
-        # 思考的嘴巴 - 缩小
-        draw.ellipse([60, 45, 65, 50], outline=1, fill=0)
+        # 思考符号在屏幕上方
+        draw.ellipse([55, 5, 65, 15], outline=1, fill=0)  # 思考泡泡
+        draw.ellipse([70, 2, 78, 10], outline=1, fill=0)
+        draw.ellipse([80, 0, 86, 6], outline=1, fill=0)
         
-        # 思考泡泡 - 缩小并调整位置
-        draw.ellipse([88, 8, 95, 15], outline=1, fill=0)
-        draw.ellipse([96, 5, 102, 11], outline=1, fill=0)
-        draw.ellipse([103, 3, 108, 8], outline=1, fill=0)
+        # 可选：眉毛表示专注
+        draw.line([(20, 15), (40, 12)], fill=1, width=2)  # 左眉毛
+        draw.line([(88, 12), (108, 15)], fill=1, width=2)  # 右眉毛
     
     def _create_confused_face(self, draw):
-        """绘制困惑表情"""
-        # 脸部轮廓 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制困惑表情 - 整个屏幕是头，只用眼睛表达"""
+        # 困惑的眼睛：一大一小，不对称
+        # 左眼（正常大小）
+        draw.ellipse([20, 25, 40, 40], outline=1, fill=1)
         
-        # 眼睛 (不对称, 缩小)
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
-        draw.ellipse([69, 23, 75, 29], outline=1, fill=1)
+        # 右眼（小一些，位置稍偏）
+        draw.ellipse([90, 20, 105, 30], outline=1, fill=1)
         
-        # 困惑的嘴巴 (波浪线, 缩小)
-        draw.line([(50, 45), (53, 42), (56, 45), (59, 42), (62, 45), (65, 42), (68, 45), (71, 42), (75, 45)], fill=1, width=2)
+        # 困惑的眉毛（不对称）
+        draw.line([(15, 20), (45, 18)], fill=1, width=2)  # 左眉毛（平）
+        draw.line([(85, 15), (100, 20), (110, 18)], fill=1, width=2)  # 右眉毛（弯曲）
         
-        # 问号 (调整位置)
-        draw.text((88, 18), "?", font=self.fonts['size_14'], fill=1)
+        # 问号
+        draw.text((55, 45), "?", font=self.fonts['size_16'], fill=1)
     
     def _create_excited_face(self, draw):
-        """绘制兴奋表情"""
-        # 脸部轮廓 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制兴奋表情 - 整个屏幕是头，只用眼睛表达"""
+        # 兴奋的眼睛：星星眼睛，表示兴奋
+        # 左眼星星
+        self._draw_star(draw, 35, 30, 8)
         
-        # 星星眼睛 (缩小)
-        self._draw_star(draw, 53, 28, 3)
-        self._draw_star(draw, 72, 28, 3)
+        # 右眼星星  
+        self._draw_star(draw, 93, 30, 8)
         
-        # 大笑嘴巴 (缩小)
-        draw.ellipse([52, 40, 73, 55], outline=1, fill=1)
-        draw.ellipse([54, 42, 71, 53], outline=1, fill=0)
+        # 兴奋的装饰线条
+        draw.line([(10, 15), (5, 10)], fill=1, width=2)
+        draw.line([(10, 25), (5, 30)], fill=1, width=2)
+        draw.line([(118, 15), (123, 10)], fill=1, width=2)
+        draw.line([(118, 25), (123, 30)], fill=1, width=2)
         
-        # 兴奋线条 (调整位置)
-        draw.line([(35, 20), (32, 17)], fill=1, width=2)
-        draw.line([(35, 30), (32, 33)], fill=1, width=2)
-        draw.line([(90, 20), (93, 17)], fill=1, width=2)
-        draw.line([(90, 30), (93, 33)], fill=1, width=2)
+        # 感叹号表示兴奋
+        draw.text((58, 45), "!", font=self.fonts['size_16'], fill=1)
     
     def _create_sleeping_face(self, draw):
-        """绘制睡觉表情"""
-        # 脸部轮廓 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        """绘制睡觉表情 - 整个屏幕是头，只用眼睛表达"""
+        # 睡觉的眼睛：闭着的眼睛（横线）
+        # 左眼
+        draw.line([(20, 30), (50, 30)], fill=1, width=4)
         
-        # 闭眼 (缩小)
-        draw.line([(50, 28), (56, 28)], fill=1, width=3)
-        draw.line([(69, 28), (75, 28)], fill=1, width=3)
+        # 右眼
+        draw.line([(78, 30), (108, 30)], fill=1, width=4)
         
-        # 安静的嘴巴 (缩小)
-        draw.ellipse([60, 45, 65, 50], outline=1, fill=1)
+        # 睡眠符号 ZZZ
+        draw.text((30, 10), "Z", font=self.fonts['size_14'], fill=1)
+        draw.text((50, 5), "z", font=self.fonts['size_12'], fill=1)
+        draw.text((65, 2), "z", font=self.fonts['size_10'], fill=1)
         
-        # ZZZ (调整位置)
-        draw.text((88, 12), "Z", font=self.fonts['size_12'], fill=1)
-        draw.text((93, 8), "z", font=self.fonts['size_10'], fill=1)
-        draw.text((96, 4), "z", font=self.fonts['size_8'], fill=1)
+        # 可选：睡眠状态的小装饰（用字母代替emoji）
+        draw.text((60, 45), "zzz", font=self.fonts['size_8'], fill=1)
+    
+    def _create_neutral_face(self, draw):
+        """绘制中性表情 - 整个屏幕是头，只用眼睛表达"""
+        # 中性的眼睛：简单的圆形眼睛
+        # 左眼
+        draw.ellipse([25, 25, 45, 45], outline=1, fill=1)
+        
+        # 右眼
+        draw.ellipse([83, 25, 103, 45], outline=1, fill=1)
     
     def _draw_star(self, draw, cx, cy, size):
         """绘制星星"""
@@ -375,37 +381,54 @@ class DisplayController:
         draw.line([(cx, cy-size), (cx, cy+size)], fill=1, width=1)
         draw.line([(cx-size*0.7, cy-size*0.7), (cx+size*0.7, cy+size*0.7)], fill=1, width=1)
         draw.line([(cx-size*0.7, cy+size*0.7), (cx+size*0.7, cy-size*0.7)], fill=1, width=1)
+
+    def _draw_small_star(self, draw, cx, cy):
+        """绘制小星星装饰"""
+        size = 3
+        draw.line([(cx-size, cy), (cx+size, cy)], fill=1, width=1)
+        draw.line([(cx, cy-size), (cx, cy+size)], fill=1, width=1)
     
     def _create_listening_animation(self, draw):
-        """绘制监听动画"""
-        # 简单的脸部 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
-        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
-        draw.ellipse([60, 45, 65, 50], outline=1, fill=0)
+        """绘制监听动画 - 整个屏幕是头，只用眼睛表达"""
+        # 专注监听的眼睛：圆形眼睛，表示注意力集中
+        # 左眼
+        draw.ellipse([20, 20, 45, 45], outline=1, fill=1)
+        draw.ellipse([25, 25, 40, 40], outline=1, fill=0)  # 眼白
+        draw.ellipse([30, 30, 35, 35], outline=1, fill=1)  # 瞳孔
         
-        # 声波动画 (缩小并调整)
+        # 右眼
+        draw.ellipse([83, 20, 108, 45], outline=1, fill=1)
+        draw.ellipse([88, 25, 103, 40], outline=1, fill=0)  # 眼白
+        draw.ellipse([93, 30, 98, 35], outline=1, fill=1)  # 瞳孔
+        
+        # 声波动画
         import math
         t = time.time()
         for i in range(3):
-            r = 25 + i * 8 + int(6 * math.sin(t * 3 + i))
-            draw.ellipse([62-r//2, 37-r//2, 62+r//2, 37+r//2], outline=1, fill=0)
+            r = 15 + i * 5 + int(3 * math.sin(t * 4 + i))
+            draw.ellipse([64-r, 32-r//2, 64+r, 32+r//2], outline=1, fill=0)
     
     def _create_speaking_animation(self, draw):
-        """绘制说话动画"""
-        # 脸部 (缩小)
-        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
-        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
-        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
+        """绘制说话动画 - 整个屏幕是头，只用眼睛表达"""
+        # 说话时的眼睛：正常的圆形眼睛
+        # 左眼
+        draw.ellipse([25, 25, 45, 45], outline=1, fill=1)
         
-        # 动态嘴巴 (缩小)
+        # 右眼
+        draw.ellipse([83, 25, 103, 45], outline=1, fill=1)
+        
+        # 动态的音符和声波表示说话
         import math
         t = time.time()
-        mouth_height = int(3 + 2 * math.sin(t * 8))
-        draw.ellipse([58, 42, 67, 42 + mouth_height], outline=1, fill=1)
         
-        # 声音符号 (调整位置)
-        draw.text((88, 35), "♪", font=self.fonts['size_14'], fill=1)
+        # 音符符号
+        note_y = int(10 + 3 * math.sin(t * 6))
+        draw.text((55, note_y), "♪", font=self.fonts['size_16'], fill=1)
+        
+        # 声波
+        for i in range(2):
+            wave_x = int(10 + 5 * math.sin(t * 4 + i))
+            draw.line([(wave_x, 50), (wave_x + 20, 45), (wave_x + 40, 50)], fill=1, width=2)
     
     # ================== 显示功能函数 ==================
     
@@ -451,8 +474,8 @@ class DisplayController:
         if emotion in self.expressions:
             self._draw_with_canvas(self.expressions[emotion])
         else:
-            # 默认表情
-            self._draw_with_canvas(self._create_happy_face)
+            # 默认表情：中性表情
+            self._draw_with_canvas(self._create_neutral_face)
     
     def _show_text(self, text):
         """显示文本"""
@@ -521,8 +544,8 @@ class DisplayController:
     def _show_idle_status(self):
         """显示空闲状态 - 作为机器人的脸，显示默认表情"""
         def draw_idle(draw):
-            # 显示默认的开心表情而不是文字
-            self._create_happy_face(draw)
+            # 显示默认的中性表情
+            self._create_neutral_face(draw)
         
         self._draw_with_canvas(draw_idle)
     
