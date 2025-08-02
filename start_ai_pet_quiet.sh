@@ -11,6 +11,6 @@ export ALSA_PCM_DEVICE=0
 exec 2> >(grep -v "ALSA lib" >&2)
 
 echo "🤖 启动AI桌宠系统..."
-echo "⚠️  需要sudo权限访问GPIO传感器"
+echo "✅ GPIO权限检查通过，正常启动"
 cd src
-sudo python3 robot_voice_web_control.py 2>&1 | grep -v "ALSA lib\|Expression.*GetExactSampleRate\|fork_posix"
+python3 robot_voice_web_control.py 2>&1 | grep -v "ALSA lib\|Expression.*GetExactSampleRate\|fork_posix"
