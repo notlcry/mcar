@@ -519,12 +519,10 @@ class DisplayController:
                 time.sleep(0.2)
     
     def _show_idle_status(self):
-        """显示空闲状态"""
+        """显示空闲状态 - 作为机器人的脸，显示默认表情"""
         def draw_idle(draw):
-            # 简单的时钟显示
-            current_time = datetime.now().strftime("%H:%M")
-            draw.text((45, 25), current_time, font=self.fonts['size_16'], fill=1)
-            draw.text((35, 45), "快快待机中", font=self.fonts['size_10'], fill=1)
+            # 显示默认的开心表情而不是文字
+            self._create_happy_face(draw)
         
         self._draw_with_canvas(draw_idle)
     

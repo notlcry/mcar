@@ -781,18 +781,15 @@ def ai_chat():
             if enhanced_voice_controller:
                 enhanced_voice_controller.speak_text(context.ai_response)
                 
-                # 更新OLED显示器显示对话内容
+                # 更新OLED显示器 - 作为机器人的脸，只显示表情
                 if enhanced_voice_controller.display_controller:
-                    # 显示用户语音
-                    enhanced_voice_controller.display_controller.show_user_speech(user_input, 3.0)
-                    time.sleep(1)  # 短暂停顿让用户看到输入
-                    
-                    # 显示AI回复
-                    enhanced_voice_controller.display_controller.show_ai_response(context.ai_response, 4.0)
-                    
-                    # 显示情感表情
-                    if context.emotion_detected and context.emotion_detected != 'neutral':
-                        enhanced_voice_controller.display_controller.show_emotion(context.emotion_detected, 2.0)
+                    # 只显示情感表情，持续显示直到下一个表情
+                    if context.emotion_detected:
+                        # 使用较长的持续时间，让表情保持显示
+                        enhanced_voice_controller.display_controller.show_emotion(context.emotion_detected, 30.0)
+                    else:
+                        # 如果没有明确情感，显示默认的开心表情
+                        enhanced_voice_controller.display_controller.show_emotion("happy", 30.0)
             
             return jsonify({
                 'status': 'success',

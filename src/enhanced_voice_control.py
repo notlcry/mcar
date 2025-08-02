@@ -233,9 +233,9 @@ class EnhancedVoiceController(VoiceController):
         
         logger.info("AI对话模式已启动")
         
-        # 显示启动状态
+        # 显示启动状态 - 用表情代替文字
         if self.display_controller:
-            self.display_controller.show_system_status("快快已启动", 2.0)
+            self.display_controller.show_emotion("happy", 30.0)
         
         # 播放启动提示音并提供即时音频确认
         self.speak_text("你好！我是快快，说'快快'来唤醒我吧~")
@@ -260,9 +260,9 @@ class EnhancedVoiceController(VoiceController):
         
         logger.info("AI对话模式已停止")
         
-        # 显示停止状态
+        # 显示停止状态 - 用表情代替文字
         if self.display_controller:
-            self.display_controller.show_system_status("快快睡觉了", 2.0)
+            self.display_controller.show_emotion("sleeping", 30.0)
         
         # 播放停止提示音
         self.speak_text("对话模式已关闭，再见~")
@@ -288,9 +288,9 @@ class EnhancedVoiceController(VoiceController):
         self.wake_word_detected = True
         self.last_interaction_time = time.time()
         
-        # 显示唤醒状态
+        # 显示唤醒状态 - 用表情代替文字  
         if self.display_controller:
-            self.display_controller.show_system_status("快快被唤醒了", 1.0)
+            self.display_controller.show_emotion("excited", 30.0)
         
         # 提供即时音频确认
         self.speak_text("我在听，请说~", priority=True)
@@ -407,9 +407,9 @@ class EnhancedVoiceController(VoiceController):
             logger.info(f"📝 用户说: {text}")
             self.last_interaction_time = time.time()
             
-            # 显示用户语音
+            # 显示用户语音状态 - 用表情代替文字
             if self.display_controller:
-                self.display_controller.show_user_speech(text, 2.0)
+                self.display_controller.show_emotion("thinking", 30.0)
             
             # AI处理
             self._process_conversation_text(text)
@@ -451,9 +451,9 @@ class EnhancedVoiceController(VoiceController):
     def _process_conversation_text(self, text):
         """处理对话文本"""
         try:
-            # 显示思考状态
+            # 显示思考状态 - 用表情代替文字
             if self.display_controller:
-                self.display_controller.show_system_status("快快思考中...", 1.0)
+                self.display_controller.show_emotion("thinking", 30.0)
             if self.expression_controller:
                 self.expression_controller.show_thinking_animation()
             
@@ -463,15 +463,15 @@ class EnhancedVoiceController(VoiceController):
             if context and context.ai_response:
                 logger.info(f"🤖 AI回复: {context.ai_response}")
                 
-                # 显示AI回复
-                if self.display_controller:
-                    self.display_controller.show_ai_response(context.ai_response, 4.0)
-                
-                # 显示情感表情
+                # 显示情感表情 - 只显示表情，不显示文字
                 if context.emotion_detected:
                     logger.info(f"😊 检测情感: {context.emotion_detected}")
                     if self.display_controller:
-                        self.display_controller.show_emotion(context.emotion_detected, 3.0)
+                        self.display_controller.show_emotion(context.emotion_detected, 30.0)
+                else:
+                    # 如果没有检测到情感，显示开心表情
+                    if self.display_controller:
+                        self.display_controller.show_emotion("happy", 30.0)
                 
                 # 语音输出
                 self.speak_text(context.ai_response)
@@ -481,7 +481,7 @@ class EnhancedVoiceController(VoiceController):
             else:
                 logger.warning("AI处理失败")
                 if self.display_controller:
-                    self.display_controller.show_system_status("处理失败", 2.0)
+                    self.display_controller.show_emotion("confused", 30.0)
                 self.speak_text("抱歉，我没听清楚，能再说一遍吗？")
                 
         except Exception as e:
