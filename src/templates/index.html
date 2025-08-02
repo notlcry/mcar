@@ -765,9 +765,11 @@
 
         // 更新传感器状态
         function updateSensors() {
+            console.log('正在获取传感器数据...');
             fetch('/sensors')
                 .then(response => response.json())
                 .then(data => {
+                    console.log('传感器数据:', data);
                     // 更新超声波距离
                     const ultrasonicBadge = document.getElementById('ultrasonic-badge');
                     const ultrasonicValue = document.getElementById('ultrasonic-value');
@@ -844,6 +846,7 @@
 
         // 页面加载时启动传感器更新
         window.addEventListener('load', function() {
+            console.log('启动传感器数据更新定时器...');
             // 每500ms更新一次传感器数据
             sensorUpdateTimer = setInterval(updateSensors, 500);
             
