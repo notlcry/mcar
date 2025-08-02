@@ -258,103 +258,103 @@ class DisplayController:
     
     def _create_happy_face(self, draw):
         """绘制开心表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 眼睛
-        draw.ellipse([45, 25, 55, 35], outline=1, fill=1)  # 左眼
-        draw.ellipse([73, 25, 83, 35], outline=1, fill=1)  # 右眼
+        # 眼睛 (缩小)
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)  # 左眼
+        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)  # 右眼
         
-        # 笑脸嘴巴
-        draw.arc([45, 45, 83, 65], start=0, end=180, fill=1, width=2)
+        # 笑脸嘴巴 (缩小)
+        draw.arc([50, 40, 75, 55], start=0, end=180, fill=1, width=2)
         
-        # 腮红
-        draw.ellipse([35, 40, 43, 48], outline=1, fill=0)
-        draw.ellipse([85, 40, 93, 48], outline=1, fill=0)
+        # 腮红 (缩小)
+        draw.ellipse([42, 35, 47, 40], outline=1, fill=0)
+        draw.ellipse([78, 35, 83, 40], outline=1, fill=0)
     
     def _create_sad_face(self, draw):
         """绘制悲伤表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 眼睛 (小一点)
-        draw.ellipse([47, 27, 53, 33], outline=1, fill=1)
-        draw.ellipse([75, 27, 81, 33], outline=1, fill=1)
+        # 眼睛 (缩小)
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
+        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
         
-        # 眼泪
-        draw.ellipse([45, 35, 47, 42], outline=1, fill=1)
-        draw.ellipse([81, 35, 83, 42], outline=1, fill=1)
+        # 眼泪 (缩小)
+        draw.ellipse([48, 32, 50, 38], outline=1, fill=1)
+        draw.ellipse([73, 32, 75, 38], outline=1, fill=1)
         
-        # 悲伤嘴巴
-        draw.arc([45, 55, 83, 70], start=180, end=360, fill=1, width=2)
+        # 悲伤嘴巴 (缩小)
+        draw.arc([50, 45, 75, 55], start=180, end=360, fill=1, width=2)
     
     def _create_thinking_face(self, draw):
         """绘制思考表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小到合适大小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 眼睛 (向上看)
-        draw.ellipse([45, 22, 55, 30], outline=1, fill=1)
-        draw.ellipse([73, 22, 83, 30], outline=1, fill=1)
+        # 眼睛 (向上看) - 缩小
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
+        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
         
-        # 思考的嘴巴
-        draw.ellipse([60, 50, 68, 58], outline=1, fill=0)
+        # 思考的嘴巴 - 缩小
+        draw.ellipse([60, 45, 65, 50], outline=1, fill=0)
         
-        # 思考泡泡
-        draw.ellipse([85, 5, 95, 15], outline=1, fill=0)
-        draw.ellipse([95, 0, 105, 10], outline=1, fill=0)
-        draw.ellipse([105, -5, 120, 10], outline=1, fill=0)
+        # 思考泡泡 - 缩小并调整位置
+        draw.ellipse([88, 8, 95, 15], outline=1, fill=0)
+        draw.ellipse([96, 5, 102, 11], outline=1, fill=0)
+        draw.ellipse([103, 3, 108, 8], outline=1, fill=0)
     
     def _create_confused_face(self, draw):
         """绘制困惑表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 眼睛 (不对称)
-        draw.ellipse([45, 25, 55, 35], outline=1, fill=1)
-        draw.ellipse([73, 22, 83, 32], outline=1, fill=1)
+        # 眼睛 (不对称, 缩小)
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
+        draw.ellipse([69, 23, 75, 29], outline=1, fill=1)
         
-        # 困惑的嘴巴 (波浪线)
-        draw.line([(45, 55), (50, 50), (55, 55), (60, 50), (65, 55), (70, 50), (75, 55), (80, 50), (83, 55)], fill=1, width=2)
+        # 困惑的嘴巴 (波浪线, 缩小)
+        draw.line([(50, 45), (53, 42), (56, 45), (59, 42), (62, 45), (65, 42), (68, 45), (71, 42), (75, 45)], fill=1, width=2)
         
-        # 问号
-        draw.text((100, 15), "?", font=self.fonts['size_14'], fill=1)
+        # 问号 (调整位置)
+        draw.text((88, 18), "?", font=self.fonts['size_14'], fill=1)
     
     def _create_excited_face(self, draw):
         """绘制兴奋表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 星星眼睛
-        self._draw_star(draw, 50, 30, 5)
-        self._draw_star(draw, 78, 30, 5)
+        # 星星眼睛 (缩小)
+        self._draw_star(draw, 53, 28, 3)
+        self._draw_star(draw, 72, 28, 3)
         
-        # 大笑嘴巴
-        draw.ellipse([50, 45, 78, 65], outline=1, fill=1)
-        draw.ellipse([52, 47, 76, 63], outline=1, fill=0)
+        # 大笑嘴巴 (缩小)
+        draw.ellipse([52, 40, 73, 55], outline=1, fill=1)
+        draw.ellipse([54, 42, 71, 53], outline=1, fill=0)
         
-        # 兴奋线条
-        draw.line([(25, 20), (20, 15)], fill=1, width=2)
-        draw.line([(25, 35), (20, 40)], fill=1, width=2)
-        draw.line([(103, 20), (108, 15)], fill=1, width=2)
-        draw.line([(103, 35), (108, 40)], fill=1, width=2)
+        # 兴奋线条 (调整位置)
+        draw.line([(35, 20), (32, 17)], fill=1, width=2)
+        draw.line([(35, 30), (32, 33)], fill=1, width=2)
+        draw.line([(90, 20), (93, 17)], fill=1, width=2)
+        draw.line([(90, 30), (93, 33)], fill=1, width=2)
     
     def _create_sleeping_face(self, draw):
         """绘制睡觉表情"""
-        # 脸部轮廓
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
+        # 脸部轮廓 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
         
-        # 闭眼
-        draw.line([(45, 30), (55, 30)], fill=1, width=3)
-        draw.line([(73, 30), (83, 30)], fill=1, width=3)
+        # 闭眼 (缩小)
+        draw.line([(50, 28), (56, 28)], fill=1, width=3)
+        draw.line([(69, 28), (75, 28)], fill=1, width=3)
         
-        # 安静的嘴巴
-        draw.ellipse([60, 52, 68, 58], outline=1, fill=1)
+        # 安静的嘴巴 (缩小)
+        draw.ellipse([60, 45, 65, 50], outline=1, fill=1)
         
-        # ZZZ
-        draw.text((100, 10), "Z", font=self.fonts['size_12'], fill=1)
-        draw.text((105, 5), "z", font=self.fonts['size_10'], fill=1)
-        draw.text((108, 0), "z", font=self.fonts['size_8'], fill=1)
+        # ZZZ (调整位置)
+        draw.text((88, 12), "Z", font=self.fonts['size_12'], fill=1)
+        draw.text((93, 8), "z", font=self.fonts['size_10'], fill=1)
+        draw.text((96, 4), "z", font=self.fonts['size_8'], fill=1)
     
     def _draw_star(self, draw, cx, cy, size):
         """绘制星星"""
@@ -378,34 +378,34 @@ class DisplayController:
     
     def _create_listening_animation(self, draw):
         """绘制监听动画"""
-        # 简单的脸部
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
-        draw.ellipse([45, 25, 55, 35], outline=1, fill=1)
-        draw.ellipse([73, 25, 83, 35], outline=1, fill=1)
-        draw.ellipse([60, 52, 68, 58], outline=1, fill=0)
+        # 简单的脸部 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
+        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
+        draw.ellipse([60, 45, 65, 50], outline=1, fill=0)
         
-        # 声波动画 (简化)
+        # 声波动画 (缩小并调整)
         import math
         t = time.time()
         for i in range(3):
-            r = 40 + i * 10 + int(10 * math.sin(t * 3 + i))
-            draw.ellipse([64-r//2, 44-r//2, 64+r//2, 44+r//2], outline=1, fill=0)
+            r = 25 + i * 8 + int(6 * math.sin(t * 3 + i))
+            draw.ellipse([62-r//2, 37-r//2, 62+r//2, 37+r//2], outline=1, fill=0)
     
     def _create_speaking_animation(self, draw):
         """绘制说话动画"""
-        # 脸部
-        draw.ellipse([30, 10, 98, 78], outline=1, fill=0)
-        draw.ellipse([45, 25, 55, 35], outline=1, fill=1)
-        draw.ellipse([73, 25, 83, 35], outline=1, fill=1)
+        # 脸部 (缩小)
+        draw.ellipse([40, 15, 85, 60], outline=1, fill=0)
+        draw.ellipse([50, 25, 56, 31], outline=1, fill=1)
+        draw.ellipse([69, 25, 75, 31], outline=1, fill=1)
         
-        # 动态嘴巴
+        # 动态嘴巴 (缩小)
         import math
         t = time.time()
-        mouth_height = int(5 + 3 * math.sin(t * 8))
-        draw.ellipse([55, 50, 73, 50 + mouth_height], outline=1, fill=1)
+        mouth_height = int(3 + 2 * math.sin(t * 8))
+        draw.ellipse([58, 42, 67, 42 + mouth_height], outline=1, fill=1)
         
-        # 声音符号
-        draw.text((100, 40), "♪", font=self.fonts['size_14'], fill=1)
+        # 声音符号 (调整位置)
+        draw.text((88, 35), "♪", font=self.fonts['size_14'], fill=1)
     
     # ================== 显示功能函数 ==================
     
