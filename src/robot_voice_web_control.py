@@ -358,6 +358,8 @@ def initialize_camera():
     try:
         print("尝试初始化普通USB摄像头...")
         camera = cv2.VideoCapture(0)
+        # 设置超时，避免无限等待
+        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         
         if not camera.isOpened():
             print("无法打开USB摄像头")
@@ -1623,9 +1625,17 @@ if __name__ == '__main__':
         sensor_thread.daemon = True
         sensor_thread.start()
         
-        # 初始化摄像头
-        if not initialize_camera():
-            print("警告: 摄像头初始化失败，继续运行但无视频流")
+        # 在后台线程中初始化摄像头，避免阻塞Flask启动
+        def init_camera_background():
+            try:
+                if not initialize_camera():
+                    print("警告: 摄像头初始化失败，继续运行但无视频流")
+            except Exception as e:
+                print(f"摄像头初始化异常: {e}")
+        
+        camera_init_thread = threading.Thread(target=init_camera_background)
+        camera_init_thread.daemon = True
+        camera_init_thread.start()
         
         print("机器人语音Web控制服务启动于 http://0.0.0.0:5000")
         print("支持的语音命令: 向前、向后、左转、右转、停止、快一点、慢一点等")
