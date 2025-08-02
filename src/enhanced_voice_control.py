@@ -53,6 +53,10 @@ class EnhancedVoiceController(VoiceController):
         self.expression_controller = expression_controller
         self.safety_manager = safety_manager
         
+        # 显示控制器 - 集成OLED显示器
+        self.display_controller = None
+        self._initialize_display_controller()
+        
         # 对话模式状态
         self.conversation_mode = False
         self.wake_word_detected = False
@@ -152,6 +156,30 @@ class EnhancedVoiceController(VoiceController):
             logger.warning(f"❌ Vosk不可用: {e}")
             return False
     
+    def _initialize_display_controller(self):
+        """初始化显示控制器"""
+        try:
+            from display_controller import DisplayController
+            self.display_controller = DisplayController()
+            
+            if self.display_controller.is_available():
+                self.display_controller.start()
+                logger.info("🖥️ OLED显示器初始化成功")
+                
+                # 如果有表情控制器，关联显示器
+                if self.expression_controller:
+                    self.expression_controller.set_display_controller(self.display_controller)
+            else:
+                logger.info("⚠️ OLED显示器不可用，继续运行")
+                self.display_controller = None
+                
+        except ImportError:
+            logger.info("⚠️ 显示控制器模块不可用")
+            self.display_controller = None
+        except Exception as e:
+            logger.warning(f"显示控制器初始化失败: {e}")
+            self.display_controller = None
+    
     def _initialize_audio_playback(self):
         """初始化音频播放系统"""
         try:
@@ -204,6 +232,10 @@ class EnhancedVoiceController(VoiceController):
         
         logger.info("AI对话模式已启动")
         
+        # 显示启动状态
+        if self.display_controller:
+            self.display_controller.show_system_status("快快已启动", 2.0)
+        
         # 播放启动提示音并提供即时音频确认
         self.speak_text("你好！我是快快，说'快快'来唤醒我吧~")
         
@@ -227,8 +259,16 @@ class EnhancedVoiceController(VoiceController):
         
         logger.info("AI对话模式已停止")
         
+        # 显示停止状态
+        if self.display_controller:
+            self.display_controller.show_system_status("快快睡觉了", 2.0)
+        
         # 播放停止提示音
         self.speak_text("对话模式已关闭，再见~")
+        
+        # 停止显示控制器
+        if self.display_controller:
+            self.display_controller.stop()
     
     def _on_wake_word_detected(self, keyword_index):
         """唤醒词检测回调 - 修复版本"""
@@ -246,6 +286,10 @@ class EnhancedVoiceController(VoiceController):
         
         self.wake_word_detected = True
         self.last_interaction_time = time.time()
+        
+        # 显示唤醒状态
+        if self.display_controller:
+            self.display_controller.show_system_status("快快被唤醒了", 1.0)
         
         # 提供即时音频确认
         self.speak_text("我在听，请说~", priority=True)
@@ -362,6 +406,10 @@ class EnhancedVoiceController(VoiceController):
             logger.info(f"📝 用户说: {text}")
             self.last_interaction_time = time.time()
             
+            # 显示用户语音
+            if self.display_controller:
+                self.display_controller.show_user_speech(text, 2.0)
+            
             # AI处理
             self._process_conversation_text(text)
             
@@ -403,6 +451,8 @@ class EnhancedVoiceController(VoiceController):
         """处理对话文本"""
         try:
             # 显示思考状态
+            if self.display_controller:
+                self.display_controller.show_system_status("快快思考中...", 1.0)
             if self.expression_controller:
                 self.expression_controller.show_thinking_animation()
             
@@ -412,17 +462,25 @@ class EnhancedVoiceController(VoiceController):
             if context and context.ai_response:
                 logger.info(f"🤖 AI回复: {context.ai_response}")
                 
-                # 语音输出
-                self.speak_text(context.ai_response)
+                # 显示AI回复
+                if self.display_controller:
+                    self.display_controller.show_ai_response(context.ai_response, 4.0)
                 
-                # 显示情感
+                # 显示情感表情
                 if context.emotion_detected:
                     logger.info(f"😊 检测情感: {context.emotion_detected}")
+                    if self.display_controller:
+                        self.display_controller.show_emotion(context.emotion_detected, 3.0)
+                
+                # 语音输出
+                self.speak_text(context.ai_response)
                 
                 # 更新交互时间
                 self.last_interaction_time = time.time()
             else:
                 logger.warning("AI处理失败")
+                if self.display_controller:
+                    self.display_controller.show_system_status("处理失败", 2.0)
                 self.speak_text("抱歉，我没听清楚，能再说一遍吗？")
                 
         except Exception as e:
