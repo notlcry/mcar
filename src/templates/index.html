@@ -744,21 +744,7 @@
             setSpeed(e.target.value);
         });
 
-        // 添加速度切换按钮功能
-        const speedToggleBtn = document.getElementById('speed-toggle-btn');
-        const mobileSpeed = document.querySelector('.mobile-speed');
-
-        speedToggleBtn.addEventListener('click', function() {
-            if (mobileSpeed.style.display === 'none' || mobileSpeed.style.display === '') {
-                mobileSpeed.style.display = 'block';
-                speedToggleBtn.style.backgroundColor = '#45a049';
-                updateStatus('打开速度控制面板');
-            } else {
-                mobileSpeed.style.display = 'none';
-                speedToggleBtn.style.backgroundColor = '#4287f5';
-                updateStatus('关闭速度控制面板');
-            }
-        });
+        // 速度切换按钮功能已移除（按钮不存在）
 
         // 添加传感器状态更新函数
         let sensorUpdateTimer = null;
