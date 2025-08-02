@@ -509,6 +509,26 @@
                     <div class="video-controls">
                         <button class="video-toggle" id="videoToggle">📷</button>
                     </div>
+                    
+                    <!-- 传感器状态显示 -->
+                    <div style="position: absolute; bottom: 8px; left: 8px; background-color: rgba(0,0,0,0.8); color: white; padding: 6px; border-radius: 6px; font-size: 11px; z-index: 10;">
+                        <div style="display: flex; align-items: center; margin: 2px 0;">
+                            <span style="margin-right: 8px;">⚡</span>
+                            <span id="ultrasonic-display">距离: --cm</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 2px 0;">
+                            <span style="margin-right: 8px;">←</span>
+                            <span id="left-ir-display">左侧: --</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 2px 0;">
+                            <span style="margin-right: 8px;">→</span>
+                            <span id="right-ir-display">右侧: --</span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin: 2px 0; font-size: 10px;">
+                            <span>避障:</span>
+                            <span id="avoidance-display" style="color: #4caf50;">开启</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- AI对话控制面板 -->
@@ -1384,6 +1404,52 @@
         
         document.addEventListener('gestureend', function(e) {
             e.preventDefault();
+        });
+
+        // 传感器数据更新函数
+        function updateSensorDisplay() {
+            fetch('/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新超声波距离
+                    const distance = data.ultrasonic || -1;
+                    document.getElementById('ultrasonic-display').textContent = 
+                        distance > 0 ? `距离: ${distance}cm` : '距离: 无信号';
+                    
+                    // 更新红外传感器
+                    document.getElementById('left-ir-display').textContent = 
+                        data.left_ir ? '左侧: 障碍' : '左侧: 安全';
+                    document.getElementById('right-ir-display').textContent = 
+                        data.right_ir ? '右侧: 障碍' : '右侧: 安全';
+                    
+                    // 更新避障状态
+                    fetch('/status')
+                        .then(response => response.json())
+                        .then(statusData => {
+                            const avoidanceEl = document.getElementById('avoidance-display');
+                            if (statusData.auto_avoidance) {
+                                avoidanceEl.textContent = '开启';
+                                avoidanceEl.style.color = '#4caf50';
+                            } else {
+                                avoidanceEl.textContent = '关闭';
+                                avoidanceEl.style.color = '#f44336';
+                            }
+                        });
+                })
+                .catch(error => {
+                    console.error('获取传感器数据失败:', error);
+                    document.getElementById('ultrasonic-display').textContent = '距离: 连接失败';
+                    document.getElementById('left-ir-display').textContent = '左侧: 连接失败';
+                    document.getElementById('right-ir-display').textContent = '右侧: 连接失败';
+                });
+        }
+
+        // 页面加载后启动传感器更新
+        window.addEventListener('load', function() {
+            // 立即更新一次
+            updateSensorDisplay();
+            // 每500ms更新一次传感器数据
+            setInterval(updateSensorDisplay, 500);
         });
     </script>
 </body>

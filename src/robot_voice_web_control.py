@@ -482,6 +482,10 @@ def robot_control_thread():
 # Web路由
 @app.route('/')
 def index():
+    return render_template('index.html')
+
+@app.route('/voice')
+def voice_index():
     return render_template('voice_index.html')
 
 @app.route('/video_feed')
