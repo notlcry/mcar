@@ -64,7 +64,7 @@ active_sessions = {}             # 活跃会话管理
 sensor_data = {
     "left_ir": False,  # 左侧红外状态，False表示无障碍，True表示有障碍
     "right_ir": False, # 右侧红外状态
-    "ultrasonic": 100, # 超声波测距，厘米
+    "ultrasonic": -1,  # 超声波测距，-1表示未初始化
     "last_update": 0   # 最后更新时间
 }
 
@@ -92,59 +92,85 @@ def setup_sensors():
 
 def ultrasonic_distance():
     """测量超声波距离"""
-    GPIO.output(TRIG, 0)
-    time.sleep(0.000002)
-    
-    GPIO.output(TRIG, 1)
-    time.sleep(0.00001)
-    GPIO.output(TRIG, 0)
-    
-    start_time = time.time()
-    timeout = start_time + 0.05  # 50ms超时
-    
-    # 等待回波开始
-    while GPIO.input(ECHO) == 0:
-        if time.time() > timeout:
-            return 999  # 超时返回
-        pass
-    
-    time1 = time.time()
-    
-    # 等待回波结束
-    while GPIO.input(ECHO) == 1:
-        if time.time() > timeout:
-            return 999  # 超时返回
-        pass
-    
-    time2 = time.time()
-    
-    # 计算距离
-    distance = round((time2 - time1) * 340 / 2 * 100)
-    return distance
+    try:
+        # 确保触发脚为低电平
+        GPIO.output(TRIG, GPIO.LOW)
+        time.sleep(0.000002)
+        
+        # 发送触发脉冲
+        GPIO.output(TRIG, GPIO.HIGH)
+        time.sleep(0.00001)  # 10微秒高电平
+        GPIO.output(TRIG, GPIO.LOW)
+        
+        start_time = time.time()
+        timeout = start_time + 0.1  # 100ms超时
+        
+        # 等待回波开始
+        while GPIO.input(ECHO) == 0:
+            if time.time() > timeout:
+                print("[DEBUG] 超声波等待回波开始超时")
+                return -1  # 超时返回-1
+        
+        time1 = time.time()
+        
+        # 等待回波结束
+        while GPIO.input(ECHO) == 1:
+            if time.time() > timeout:
+                print("[DEBUG] 超声波等待回波结束超时") 
+                return -1  # 超时返回-1
+        
+        time2 = time.time()
+        
+        # 计算距离 (声速340m/s = 34000cm/s)
+        duration = time2 - time1
+        distance = round(duration * 34000 / 2)  # 除以2因为是往返时间
+        
+        # 合理性检查
+        if distance < 2 or distance > 400:
+            print(f"[DEBUG] 超声波距离异常: {distance}cm, 持续时间: {duration}s")
+            return -1
+            
+        return distance
+        
+    except Exception as e:
+        print(f"[DEBUG] 超声波测距错误: {e}")
+        return -1
 
 def read_sensors():
     """读取所有传感器数据"""
     global sensor_data
     
     try:
-        # 读取红外传感器
-        left_status = not GPIO.input(SensorLeft)   # 低电平表示有障碍
-        right_status = not GPIO.input(SensorRight) # 低电平表示有障碍
+        # 读取红外传感器原始值
+        left_raw = GPIO.input(SensorLeft)
+        right_raw = GPIO.input(SensorRight) 
+        
+        # 转换为障碍检测结果（低电平表示有障碍）
+        left_status = not left_raw
+        right_status = not right_raw
         
         # 读取超声波传感器
         distance = ultrasonic_distance()
+        
+        # 调试输出（每10次输出一次，避免日志过多）
+        current_time = time.time()
+        if not hasattr(read_sensors, 'last_debug') or current_time - read_sensors.last_debug > 2:
+            print(f"[DEBUG] 传感器读取: 左侧GPIO={left_raw}(障碍={left_status}), 右侧GPIO={right_raw}(障碍={right_status}), 距离={distance}cm")
+            read_sensors.last_debug = current_time
         
         # 更新传感器数据
         sensor_data = {
             "left_ir": left_status,
             "right_ir": right_status,
             "ultrasonic": distance,
-            "last_update": time.time()
+            "last_update": current_time
         }
         
         return sensor_data
     except Exception as e:
         print(f"读取传感器错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return sensor_data
 
 def execute_robot_command(command, duration=0, emotion_context=None, session_id=None):
@@ -238,6 +264,8 @@ def execute_robot_command(command, duration=0, emotion_context=None, session_id=
 
 def sensor_monitor_thread():
     """传感器监控线程"""
+    print("[DEBUG] 传感器监控线程已启动")
+    loop_count = 0
     while True:
         try:
             read_sensors()  # 更新传感器数据
@@ -245,10 +273,16 @@ def sensor_monitor_thread():
             # 如果启用了自动避障
             if auto_obstacle_avoidance and last_command != "stop":
                 obstacle_avoidance()
+            
+            loop_count += 1
+            if loop_count % 50 == 0:  # 每5秒输出一次状态
+                print(f"[DEBUG] 传感器监控线程运行正常，已执行{loop_count}次循环")
                 
             time.sleep(0.1)  # 100ms更新一次
         except Exception as e:
             print(f"传感器监控错误: {str(e)}")
+            import traceback
+            traceback.print_exc()
             time.sleep(0.5)
 
 def obstacle_avoidance():
