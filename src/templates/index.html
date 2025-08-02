@@ -84,18 +84,22 @@
         .control-buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
+            gap: 10px;
             margin-bottom: 15px;
         }
         .btn-control {
-            font-size: 14px;
+            font-size: 18px;
+            font-weight: bold;
             border: none;
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 12px;
+            padding: 15px 8px;
             color: white;
             background-color: #4287f5;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             transition: all 0.2s;
+            min-height: 50px;
+            cursor: pointer;
+            user-select: none;
         }
         .btn-control:active {
             transform: scale(0.95);
@@ -104,6 +108,11 @@
         .btn-stop {
             background-color: #f44336;
             grid-column: 2;
+            font-size: 20px;
+        }
+        .btn-control:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         }
         .status-panel {
             background-color: #333;
@@ -164,11 +173,12 @@
             }
             /* 优化移动端按钮大小 */
             .control-buttons {
-                gap: 5px;
+                gap: 8px;
             }
             .btn-control {
-                font-size: 14px;
-                padding: 8px;
+                font-size: 16px;
+                padding: 12px 8px;
+                min-height: 45px;
             }
             /* 确保速度控制在iPhone上可见 */
             .speed-control {
@@ -241,26 +251,30 @@
         
         /* 传感器显示样式 */
         .sensor-panel {
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(0,0,0,0.9);
             color: #fff;
             position: absolute;
-            bottom: 8px;
-            left: 8px;
-            padding: 6px;
-            border-radius: 6px;
-            font-size: 11px;
+            bottom: 10px;
+            left: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
             z-index: 10;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.3);
+            min-width: 140px;
         }
         .sensor-badge {
             display: inline-flex;
-            margin: 1px;
-            padding: 2px 4px;
-            border-radius: 3px;
+            margin: 3px 0;
+            padding: 8px 10px;
+            border-radius: 8px;
             align-items: center;
+            font-size: 13px;
+            font-weight: bold;
         }
         .sensor-badge.safe {
             background-color: #4caf50;
@@ -272,10 +286,11 @@
             background-color: #f44336;
         }
         .sensor-icon {
-            width: 12px;
-            height: 12px;
-            margin-right: 4px;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
             text-align: center;
+            font-size: 16px;
         }
 
         /* 开关按钮样式 */
@@ -283,14 +298,18 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin: 3px 0;
-            font-size: 12px;
+            margin: 8px 0;
+            padding: 6px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
         }
         .switch {
             position: relative;
             display: inline-block;
-            width: 30px;
-            height: 17px;
+            width: 40px;
+            height: 22px;
         }
         .switch input {
             opacity: 0;
@@ -306,13 +325,13 @@
             bottom: 0;
             background-color: #ccc;
             transition: .4s;
-            border-radius: 17px;
+            border-radius: 22px;
         }
         .slider:before {
             position: absolute;
             content: "";
-            height: 13px;
-            width: 13px;
+            height: 18px;
+            width: 18px;
             left: 2px;
             bottom: 2px;
             background-color: white;
@@ -320,15 +339,17 @@
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: #2196F3;
+            background-color: #4caf50;
         }
         input:checked + .slider:before {
-            transform: translateX(13px);
+            transform: translateX(18px);
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <h2 class="title">🤖 智能机器人遥控系统</h2>
+        
         <!-- 视频区域 - 更小的视频区域 -->
         <div class="video-container" style="padding-bottom: 40%;">
             <img src="/video_feed" alt="机器人摄像头" class="video-feed" id="video-feed">
@@ -353,7 +374,7 @@
                     <span id="right-ir-value">右侧: 安全</span>
                 </div>
                 <div class="switch-container">
-                    <span>自动避障:</span>
+                    <span>🛡️ 自动避障</span>
                     <label class="switch">
                         <input type="checkbox" id="avoidance-toggle">
                         <span class="slider"></span>
@@ -390,12 +411,12 @@
                 
                 <!-- 按钮控制 - 简化布局 -->
                 <div class="control-buttons">
-                    <button class="btn-control" id="forward-btn">前</button>
-                    <button class="btn-control btn-stop" id="stop-btn">停</button>
-                    <button class="btn-control" id="backward-btn">后</button>
-                    <button class="btn-control" id="left-btn">左</button>
-                    <button class="btn-control" id="sensor-test-btn" style="background-color: #ff9800;">传感器</button>
-                    <button class="btn-control" id="right-btn">右</button>
+                    <button class="btn-control" id="forward-btn">⬆️ 前进</button>
+                    <button class="btn-control btn-stop" id="stop-btn">🛑 停止</button>
+                    <button class="btn-control" id="backward-btn">⬇️ 后退</button>
+                    <button class="btn-control" id="left-btn">⬅️ 左转</button>
+                    <button class="btn-control" id="sensor-test-btn" style="background-color: #ff9800;">🔍 传感器</button>
+                    <button class="btn-control" id="right-btn">➡️ 右转</button>
                 </div>
                 
                 <!-- 速度控制 - 桌面版 -->
@@ -522,8 +543,10 @@
             zone: document.getElementById('joystick-zone'),
             mode: 'static',
             position: {left: '50%', top: '50%'},
-            color: 'blue',
-            size: 120,
+            color: '#4287f5',
+            size: 140,
+            threshold: 0.1,
+            fadeTime: 250,
             lockX: false,
             lockY: false
         };
