@@ -106,6 +106,7 @@ class EnhancedVoiceController(VoiceController):
         logger.info(f"   🌍 Whisper (多语言):     {'✅ 可用' if self.use_whisper else '❌ 不可用'}")
         logger.info(f"   🌐 Google (在线):        ✅ 可用")
         logger.info(f"   🇺🇸 PocketSphinx (英文): ✅ 可用")
+        logger.info(f"   🖥️ OLED显示器:         {'✅ 可用' if self.display_controller and self.display_controller.is_available() else '❌ 不可用'}")
         logger.info("=" * 50)
     
     def _initialize_wake_word_detection(self):
