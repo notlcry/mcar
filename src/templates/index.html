@@ -241,17 +241,19 @@
         
         /* 传感器显示样式 */
         .sensor-panel {
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0,0,0,0.8);
             color: #fff;
             position: absolute;
             bottom: 8px;
             left: 8px;
-            padding: 4px;
-            border-radius: 4px;
-            font-size: 10px;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 11px;
             z-index: 10;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .sensor-badge {
             display: inline-flex;
@@ -374,6 +376,13 @@
             
             <!-- 右侧控制面板 -->
             <div class="controls-panel">
+                <!-- 机器人状态指示器 -->
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <div id="robot-status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background-color: #4caf50; margin-right: 8px;"></div>
+                    <span id="robot-status-text" style="font-weight: bold; font-size: 14px;">机器人在线</span>
+                    <span id="current-action" style="margin-left: auto; font-size: 12px; color: #666;">待机中</span>
+                </div>
+                
                 <!-- 状态显示 -->
                 <div class="status-panel" id="status">
                     系统就绪...
@@ -385,7 +394,7 @@
                     <button class="btn-control btn-stop" id="stop-btn">停</button>
                     <button class="btn-control" id="backward-btn">后</button>
                     <button class="btn-control" id="left-btn">左</button>
-                    <button class="btn-control" id="speed-toggle-btn">速度</button>
+                    <button class="btn-control" id="sensor-test-btn" style="background-color: #ff9800;">传感器</button>
                     <button class="btn-control" id="right-btn">右</button>
                 </div>
                 
@@ -421,6 +430,7 @@
         // 命令发送函数
         function sendCommand(command) {
             updateStatus(`发送命令: ${command}`);
+            updateCurrentAction(command);
             fetch('/control', {
                 method: 'POST',
                 headers: {
@@ -430,10 +440,38 @@
             }).then(response => {
                 if (!response.ok) {
                     updateStatus('命令发送失败');
+                    updateRobotStatus('离线', '#f44336');
+                } else {
+                    updateRobotStatus('在线', '#4caf50');
                 }
             }).catch(error => {
                 updateStatus(`错误: ${error.message}`);
+                updateRobotStatus('连接错误', '#f44336');
             });
+        }
+        
+        // 更新机器人状态指示器
+        function updateRobotStatus(text, color) {
+            document.getElementById('robot-status-indicator').style.backgroundColor = color;
+            document.getElementById('robot-status-text').textContent = `机器人${text}`;
+        }
+        
+        // 更新当前动作
+        function updateCurrentAction(command) {
+            const actionMap = {
+                'forward': '前进',
+                'backward': '后退', 
+                'left': '左转',
+                'right': '右转',
+                'move_left': '左移',
+                'move_right': '右移',
+                'forward_left': '前左',
+                'forward_right': '前右',
+                'backward_left': '后左',
+                'backward_right': '后右',
+                'stop': '待机中'
+            };
+            document.getElementById('current-action').textContent = actionMap[command] || command;
         }
         
         // 设置速度函数
@@ -564,6 +602,8 @@
         // 页面加载完成
         window.addEventListener('load', function() {
             updateStatus('系统已连接，等待命令...');
+            updateRobotStatus('在线', '#4caf50');
+            updateCurrentAction('stop');
             getCameraStatus();
         });
         
@@ -731,16 +771,20 @@
                     // 更新超声波距离
                     const ultrasonicBadge = document.getElementById('ultrasonic-badge');
                     const ultrasonicValue = document.getElementById('ultrasonic-value');
-                    const distance = data.ultrasonic;
+                    const distance = data.ultrasonic || -1;
                     
-                    ultrasonicValue.textContent = `距离: ${distance}cm`;
-                    
-                    if (distance < 20) {
-                        ultrasonicBadge.className = 'sensor-badge danger';
-                    } else if (distance < 40) {
-                        ultrasonicBadge.className = 'sensor-badge warning';
+                    if (distance > 0) {
+                        ultrasonicValue.textContent = `距离: ${distance}cm`;
+                        if (distance < 20) {
+                            ultrasonicBadge.className = 'sensor-badge danger';
+                        } else if (distance < 40) {
+                            ultrasonicBadge.className = 'sensor-badge warning';
+                        } else {
+                            ultrasonicBadge.className = 'sensor-badge safe';
+                        }
                     } else {
-                        ultrasonicBadge.className = 'sensor-badge safe';
+                        ultrasonicValue.textContent = '距离: 无信号';
+                        ultrasonicBadge.className = 'sensor-badge warning';
                     }
                     
                     // 更新左侧红外
@@ -769,6 +813,10 @@
                 })
                 .catch(error => {
                     console.error('获取传感器数据失败:', error);
+                    // 传感器连接失败时显示警告
+                    document.getElementById('ultrasonic-value').textContent = '距离: 连接失败';
+                    document.getElementById('left-ir-value').textContent = '左侧: 连接失败';
+                    document.getElementById('right-ir-value').textContent = '右侧: 连接失败';
                 });
         }
 
@@ -813,6 +861,19 @@
             if (sensorUpdateTimer) {
                 clearInterval(sensorUpdateTimer);
             }
+        });
+
+        // 传感器测试按钮
+        document.getElementById('sensor-test-btn').addEventListener('click', function() {
+            updateStatus('手动刷新传感器数据...');
+            updateSensors();
+            
+            // 显示详细传感器信息
+            fetch('/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    updateStatus(`传感器数据: 左侧${data.left_ir ? '有障碍' : '安全'}, 右侧${data.right_ir ? '有障碍' : '安全'}, 距离${data.ultrasonic}cm, 避障${data.auto_avoidance ? '开启' : '关闭'}`);
+                });
         });
     </script>
 </body>
