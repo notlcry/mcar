@@ -265,13 +265,39 @@ class VoskStreamRecognizer:
         try:
             # 初始化音频流
             pa = pyaudio.PyAudio()
+            
+            # 查找ReSpeaker设备 (ReSpeaker 2-Mics显示为"array"设备)
+            respeaker_device_index = None
+            for i in range(pa.get_device_count()):
+                info = pa.get_device_info_by_index(i)
+                device_name = info['name'].lower()
+                # ReSpeaker 2-Mics通常显示为"array"，且有2个输入通道
+                if (('seeed' in device_name or 'respeaker' in device_name or 'array' in device_name) 
+                    and info['maxInputChannels'] == 2):
+                    respeaker_device_index = i
+                    logger.info(f"找到ReSpeaker设备: {info['name']} (索引: {i})")
+                    break
+            
+            # ReSpeaker 2需要使用48kHz采样率
+            device_sample_rate = 48000 if respeaker_device_index is not None else self.sample_rate
+            
+            # ReSpeaker 2-Mics需要2声道录音
+            channels = 2 if respeaker_device_index is not None else 1
+            
             self.audio_stream = pa.open(
                 format=pyaudio.paInt16,
-                channels=1,
-                rate=self.sample_rate,
+                channels=channels,
+                rate=device_sample_rate,
                 input=True,
+                input_device_index=respeaker_device_index,  # 使用ReSpeaker设备
                 frames_per_buffer=4096
             )
+            
+            # 保存声道数
+            self.channels = channels
+            
+            # 保存实际使用的采样率，用于后续重采样
+            self.actual_sample_rate = device_sample_rate
             
             # 启动识别线程
             recognition_thread = threading.Thread(
@@ -305,6 +331,20 @@ class VoskStreamRecognizer:
             try:
                 # 读取音频数据
                 data = self.audio_stream.read(4096, exception_on_overflow=False)
+                
+                # 如果是立体声，转换为单声道（取左声道）
+                if hasattr(self, 'channels') and self.channels == 2:
+                    # 将立体声转换为单声道
+                    audio_array = np.frombuffer(data, dtype=np.int16)
+                    # 重新整形为 (samples, channels)
+                    stereo_array = audio_array.reshape(-1, 2)
+                    # 取左声道
+                    mono_array = stereo_array[:, 0]
+                    data = mono_array.tobytes()
+                
+                # 如果需要重采样（ReSpeaker使用48kHz，Vosk需要16kHz）
+                if hasattr(self, 'actual_sample_rate') and self.actual_sample_rate != self.sample_rate:
+                    data = self._resample_audio(data, self.actual_sample_rate, self.sample_rate)
                 
                 # 处理音频
                 if self.recognizer.AcceptWaveform(data):

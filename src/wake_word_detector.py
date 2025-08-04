@@ -11,6 +11,8 @@ import threading
 import time
 import logging
 import os
+import numpy as np
+from scipy import signal
 from typing import Callable, Optional
 
 # 设置日志
@@ -190,16 +192,44 @@ class WakeWordDetector:
         try:
             pa = pyaudio.PyAudio()
             
+            # 查找ReSpeaker设备 (ReSpeaker 2-Mics显示为"array"设备)
+            respeaker_device_index = None
+            for i in range(pa.get_device_count()):
+                info = pa.get_device_info_by_index(i)
+                device_name = info['name'].lower()
+                # ReSpeaker 2-Mics通常显示为"array"，且有2个输入通道
+                if (('seeed' in device_name or 'respeaker' in device_name or 'array' in device_name) 
+                    and info['maxInputChannels'] == 2):
+                    respeaker_device_index = i
+                    logger.info(f"找到ReSpeaker设备: {info['name']} (索引: {i})")
+                    break
+            
             # 直接使用Porcupine要求的采样率创建音频流
             logger.info(f"使用Porcupine原生采样率: {self.target_sample_rate} Hz")
             
+            # ReSpeaker 2需要使用48kHz采样率，但Porcupine需要16kHz
+            device_sample_rate = 48000 if respeaker_device_index is not None else self.target_sample_rate
+            
+            if respeaker_device_index is not None:
+                logger.info("ReSpeaker设备需要48kHz采样率，将自动重采样到16kHz")
+            
+            # ReSpeaker 2-Mics需要2声道录音
+            channels = 2 if respeaker_device_index is not None else 1
+            
             self.audio_stream = pa.open(
-                rate=self.target_sample_rate,
-                channels=1,
+                rate=device_sample_rate,
+                channels=channels,
                 format=pyaudio.paInt16,
                 input=True,
-                frames_per_buffer=self.porcupine.frame_length
+                input_device_index=respeaker_device_index,  # 使用ReSpeaker设备
+                frames_per_buffer=int(self.porcupine.frame_length * device_sample_rate / self.target_sample_rate)
             )
+            
+            # 保存声道数
+            self.channels = channels
+            
+            # 保存实际使用的采样率
+            self.actual_sample_rate = device_sample_rate
             
             # 启动检测线程
             self.detection_thread = threading.Thread(target=self._detection_worker, daemon=True)
@@ -222,6 +252,36 @@ class WakeWordDetector:
         
         logger.info("唤醒词检测已停止")
     
+    def _resample_audio(self, audio_data: bytes, original_rate: int, target_rate: int) -> bytes:
+        """
+        重采样音频数据
+        Args:
+            audio_data: 原始音频数据
+            original_rate: 原始采样率
+            target_rate: 目标采样率
+        Returns:
+            重采样后的音频数据
+        """
+        if original_rate == target_rate:
+            return audio_data
+        
+        try:
+            # 转换为numpy数组
+            audio_array = np.frombuffer(audio_data, dtype=np.int16)
+            
+            # 计算重采样后的样本数
+            num_samples = int(len(audio_array) * target_rate / original_rate)
+            
+            # 使用scipy进行重采样
+            resampled_array = signal.resample(audio_array, num_samples)
+            
+            # 转换回int16并返回bytes
+            return resampled_array.astype(np.int16).tobytes()
+            
+        except Exception as e:
+            logger.error(f"音频重采样失败: {e}")
+            return audio_data
+    
     def _detection_worker(self):
         """检测工作线程 - 使用官方推荐方式"""
         logger.info("唤醒词检测线程启动")
@@ -230,8 +290,28 @@ class WakeWordDetector:
         
         while self.is_listening:
             try:
-                # 读取音频数据（直接使用Porcupine帧长度）
-                pcm_data = self.audio_stream.read(self.porcupine.frame_length, exception_on_overflow=False)
+                # 读取音频数据
+                frame_length = int(self.porcupine.frame_length * self.actual_sample_rate / self.target_sample_rate)
+                pcm_data = self.audio_stream.read(frame_length, exception_on_overflow=False)
+                
+                # 如果是立体声，转换为单声道（取左声道）
+                if hasattr(self, 'channels') and self.channels == 2:
+                    # 将立体声转换为单声道
+                    audio_array = np.frombuffer(pcm_data, dtype=np.int16)
+                    # 重新整形为 (samples, channels)
+                    stereo_array = audio_array.reshape(-1, 2)
+                    # 取左声道
+                    mono_array = stereo_array[:, 0]
+                    pcm_data = mono_array.tobytes()
+                
+                # 如果需要重采样（ReSpeaker使用48kHz，Porcupine需要16kHz）
+                if self.actual_sample_rate != self.target_sample_rate:
+                    pcm_data = self._resample_audio(pcm_data, self.actual_sample_rate, self.target_sample_rate)
+                
+                # 确保数据长度正确
+                expected_length = self.porcupine.frame_length * 2  # 16-bit = 2 bytes per sample
+                if len(pcm_data) != expected_length:
+                    continue
                 
                 # 使用官方推荐的格式转换
                 pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm_data)
