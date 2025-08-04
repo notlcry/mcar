@@ -190,54 +190,119 @@ class WakeWordDetector:
         self.detection_callback = callback
         self.is_listening = True
         
+        # 尝试多种音频配置
+        audio_configs = [
+            # 配置1: ReSpeaker 2-Mics (48kHz, 2通道)
+            {
+                'name': 'ReSpeaker 2-Mics',
+                'sample_rate': 48000,
+                'channels': 2,
+                'frames_per_buffer': 1536,  # 48000 * 512 / 16000
+                'device_filter': lambda info: (
+                    ('seeed' in info['name'].lower() or 'respeaker' in info['name'].lower() or 'array' in info['name'].lower()) 
+                    and info['maxInputChannels'] >= 2
+                )
+            },
+            # 配置2: 任何2通道设备 (48kHz)
+            {
+                'name': '2通道设备(48kHz)',
+                'sample_rate': 48000,
+                'channels': 2,
+                'frames_per_buffer': 1536,
+                'device_filter': lambda info: info['maxInputChannels'] >= 2
+            },
+            # 配置3: 默认设备 (16kHz, 1通道)
+            {
+                'name': '默认设备(16kHz)',
+                'sample_rate': 16000,
+                'channels': 1,
+                'frames_per_buffer': 512,
+                'device_filter': lambda info: info['maxInputChannels'] >= 1
+            },
+            # 配置4: 任何可用设备 (44.1kHz)
+            {
+                'name': '通用设备(44.1kHz)',
+                'sample_rate': 44100,
+                'channels': 1,
+                'frames_per_buffer': 1411,  # 44100 * 512 / 16000
+                'device_filter': lambda info: info['maxInputChannels'] >= 1
+            }
+        ]
+        
         # 初始化音频流
         try:
             pa = pyaudio.PyAudio()
             
-            # 查找ReSpeaker设备 (ReSpeaker 2-Mics显示为"array"设备)
-            respeaker_device_index = None
+            # 列出所有音频设备用于调试
+            logger.info("可用音频设备:")
             for i in range(pa.get_device_count()):
                 info = pa.get_device_info_by_index(i)
-                device_name = info['name'].lower()
-                # ReSpeaker 2-Mics通常显示为"array"，且有2个输入通道
-                if (('seeed' in device_name or 'respeaker' in device_name or 'array' in device_name) 
-                    and info['maxInputChannels'] == 2):
-                    respeaker_device_index = i
-                    logger.info(f"找到ReSpeaker设备: {info['name']} (索引: {i})")
+                if info['maxInputChannels'] > 0:
+                    logger.info(f"  设备 {i}: {info['name']} (输入通道: {info['maxInputChannels']}, 采样率: {info['defaultSampleRate']})")
+            
+            # 尝试不同的音频配置
+            audio_stream_created = False
+            for config in audio_configs:
+                if audio_stream_created:
                     break
+                    
+                logger.info(f"尝试音频配置: {config['name']}")
+                
+                # 查找符合条件的设备
+                device_index = None
+                for i in range(pa.get_device_count()):
+                    info = pa.get_device_info_by_index(i)
+                    if info['maxInputChannels'] > 0 and config['device_filter'](info):
+                        device_index = i
+                        logger.info(f"选择设备: {info['name']} (索引: {i})")
+                        break
+                
+                # 尝试创建音频流
+                try:
+                    self.audio_stream = pa.open(
+                        rate=config['sample_rate'],
+                        channels=config['channels'],
+                        format=pyaudio.paInt16,
+                        input=True,
+                        input_device_index=device_index,
+                        frames_per_buffer=config['frames_per_buffer'],
+                        stream_callback=None,
+                        start=False
+                    )
+                    
+                    # 测试音频流
+                    self.audio_stream.start_stream()
+                    test_data = self.audio_stream.read(config['frames_per_buffer'], exception_on_overflow=False)
+                    
+                    # 如果测试成功，保存配置
+                    self.channels = config['channels']
+                    self.actual_sample_rate = config['sample_rate']
+                    audio_stream_created = True
+                    
+                    logger.info(f"✅ 音频配置成功: {config['name']} - {config['sample_rate']}Hz, {config['channels']}通道")
+                    
+                    if config['sample_rate'] != self.target_sample_rate:
+                        logger.info(f"将从 {config['sample_rate']}Hz 重采样到 {self.target_sample_rate}Hz")
+                    
+                except Exception as config_error:
+                    logger.warning(f"音频配置 {config['name']} 失败: {config_error}")
+                    if hasattr(self, 'audio_stream') and self.audio_stream:
+                        try:
+                            self.audio_stream.close()
+                        except:
+                            pass
+                        self.audio_stream = None
+                    continue
             
-            # 直接使用Porcupine要求的采样率创建音频流
-            logger.info(f"使用Porcupine原生采样率: {self.target_sample_rate} Hz")
-            
-            # ReSpeaker 2需要使用48kHz采样率，但Porcupine需要16kHz
-            device_sample_rate = 48000 if respeaker_device_index is not None else self.target_sample_rate
-            
-            if respeaker_device_index is not None:
-                logger.info("ReSpeaker设备需要48kHz采样率，将自动重采样到16kHz")
-            
-            # ReSpeaker 2-Mics需要2声道录音
-            channels = 2 if respeaker_device_index is not None else 1
-            
-            self.audio_stream = pa.open(
-                rate=device_sample_rate,
-                channels=channels,
-                format=pyaudio.paInt16,
-                input=True,
-                input_device_index=respeaker_device_index,  # 使用ReSpeaker设备
-                frames_per_buffer=int(self.porcupine.frame_length * device_sample_rate / self.target_sample_rate)
-            )
-            
-            # 保存声道数
-            self.channels = channels
-            
-            # 保存实际使用的采样率
-            self.actual_sample_rate = device_sample_rate
+            if not audio_stream_created:
+                logger.error("所有音频配置都失败了")
+                return False
             
             # 启动检测线程
             self.detection_thread = threading.Thread(target=self._detection_worker, daemon=True)
             self.detection_thread.start()
             
-            logger.info("唤醒词检测已启动")
+            logger.info("🎤 唤醒词检测已启动")
             return True
             
         except Exception as e:
@@ -289,48 +354,103 @@ class WakeWordDetector:
         logger.info("唤醒词检测线程启动")
         logger.info(f"使用采样率: {self.target_sample_rate} Hz")
         logger.info(f"帧长度: {self.porcupine.frame_length}")
+        logger.info(f"实际设备采样率: {self.actual_sample_rate} Hz")
+        logger.info(f"音频通道数: {self.channels}")
+        
+        consecutive_errors = 0
+        max_consecutive_errors = 10
         
         while self.is_listening:
             try:
                 # 读取音频数据
                 frame_length = int(self.porcupine.frame_length * self.actual_sample_rate / self.target_sample_rate)
-                pcm_data = self.audio_stream.read(frame_length, exception_on_overflow=False)
+                
+                try:
+                    pcm_data = self.audio_stream.read(frame_length, exception_on_overflow=False)
+                except Exception as read_error:
+                    logger.warning(f"音频读取错误: {read_error}")
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        logger.error("连续音频错误过多，停止检测")
+                        break
+                    time.sleep(0.1)
+                    continue
+                
+                if not pcm_data:
+                    logger.warning("读取到空音频数据")
+                    time.sleep(0.01)
+                    continue
                 
                 # 如果是立体声，转换为单声道（取左声道）
                 if hasattr(self, 'channels') and self.channels == 2:
-                    # 将立体声转换为单声道
-                    audio_array = np.frombuffer(pcm_data, dtype=np.int16)
-                    # 重新整形为 (samples, channels)
-                    stereo_array = audio_array.reshape(-1, 2)
-                    # 取左声道
-                    mono_array = stereo_array[:, 0]
-                    pcm_data = mono_array.tobytes()
+                    try:
+                        # 将立体声转换为单声道
+                        audio_array = np.frombuffer(pcm_data, dtype=np.int16)
+                        # 重新整形为 (samples, channels)
+                        stereo_array = audio_array.reshape(-1, 2)
+                        # 取左声道
+                        mono_array = stereo_array[:, 0]
+                        pcm_data = mono_array.tobytes()
+                    except Exception as stereo_error:
+                        logger.warning(f"立体声转换错误: {stereo_error}")
+                        continue
                 
                 # 如果需要重采样（ReSpeaker使用48kHz，Porcupine需要16kHz）
                 if self.actual_sample_rate != self.target_sample_rate:
-                    pcm_data = self._resample_audio(pcm_data, self.actual_sample_rate, self.target_sample_rate)
+                    try:
+                        pcm_data = self._resample_audio(pcm_data, self.actual_sample_rate, self.target_sample_rate)
+                    except Exception as resample_error:
+                        logger.warning(f"重采样错误: {resample_error}")
+                        continue
                 
                 # 确保数据长度正确
                 expected_length = self.porcupine.frame_length * 2  # 16-bit = 2 bytes per sample
                 if len(pcm_data) != expected_length:
+                    logger.debug(f"音频数据长度不匹配: 期望 {expected_length}, 实际 {len(pcm_data)}")
                     continue
                 
                 # 使用官方推荐的格式转换
-                pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm_data)
+                try:
+                    pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm_data)
+                except struct.error as struct_error:
+                    logger.warning(f"音频数据解包错误: {struct_error}")
+                    continue
                 
                 # 检测唤醒词
-                keyword_index = self.porcupine.process(pcm)
-                
-                if keyword_index >= 0:
-                    logger.info(f"🎉 检测到唤醒词 '快快'，索引: {keyword_index}")
+                try:
+                    keyword_index = self.porcupine.process(pcm)
                     
-                    # 调用回调函数
-                    if self.detection_callback:
-                        self.detection_callback(keyword_index)
+                    if keyword_index >= 0:
+                        logger.info(f"🎉 检测到唤醒词 '快快'，索引: {keyword_index}")
+                        
+                        # 调用回调函数
+                        if self.detection_callback:
+                            try:
+                                self.detection_callback(keyword_index)
+                            except Exception as callback_error:
+                                logger.error(f"回调函数执行错误: {callback_error}")
+                        
+                        # 重置错误计数器
+                        consecutive_errors = 0
+                    else:
+                        # 重置错误计数器（成功处理音频）
+                        consecutive_errors = 0
+                        
+                except Exception as process_error:
+                    logger.warning(f"Porcupine处理错误: {process_error}")
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        logger.error("连续处理错误过多，停止检测")
+                        break
+                    continue
                 
             except Exception as e:
-                logger.error(f"唤醒词检测错误: {e}")
-                time.sleep(0.01)
+                logger.error(f"唤醒词检测线程错误: {e}")
+                consecutive_errors += 1
+                if consecutive_errors >= max_consecutive_errors:
+                    logger.error("连续错误过多，停止检测线程")
+                    break
+                time.sleep(0.1)
                 
                 if not self.is_listening:
                     break
