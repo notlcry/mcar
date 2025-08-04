@@ -70,7 +70,9 @@ class WakeWordDetector:
                     logger.info(f"自动发现 {len(ppn_files)} 个自定义唤醒词文件")
                 else:
                     self.keyword_paths = None
-                    self.keywords = [pvporcupine.KEYWORDS['computer']]
+                    # 使用内置关键词列表中的可用关键词
+                    available_keywords = list(pvporcupine.KEYWORDS)
+                    self.keywords = ['porcupine'] if 'porcupine' in available_keywords else [available_keywords[0]]
             else:
                 # 如果没有访问密钥或自定义文件，使用内置关键词
                 logger.warning("未设置PICOVOICE_ACCESS_KEY或未找到自定义唤醒词，将使用内置关键词")

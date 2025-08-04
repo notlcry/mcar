@@ -17,6 +17,14 @@ echo "💬 说 '快快' 开始对话"
 echo "✨ 按 Ctrl+C 停止系统"
 echo "=" * 50
 
+# 加载环境变量（重要！）
+if [ -f ".ai_pet_env" ]; then
+    source .ai_pet_env
+    echo "✅ 环境变量已加载"
+else
+    echo "⚠️ 未找到.ai_pet_env文件"
+fi
+
 cd src
 
 # 启动AI对话系统并自动开启对话模式
