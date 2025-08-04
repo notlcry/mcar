@@ -8,8 +8,11 @@ import sys
 import time
 import signal
 
+# 添加src目录到Python路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
 # 加载环境变量
-env_file = "../.ai_pet_env"
+env_file = ".ai_pet_env"
 if os.path.exists(env_file):
     with open(env_file, 'r') as f:
         for line in f:
