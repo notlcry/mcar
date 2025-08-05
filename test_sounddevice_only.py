@@ -110,11 +110,12 @@ class SoundDeviceWakeWordDetector:
                         self.device_id = i
                         print(f"✅ 选择ReSpeaker设备: {device['name']}")
             
-            # 测试录音
-            print("🧪 测试sounddevice录音...")
+            # 测试录音 - ReSpeaker需要48kHz采样率
+            device_sample_rate = 48000
+            print(f"🧪 测试sounddevice录音 (设备采样率: {device_sample_rate}Hz)...")
             test_audio = sd.rec(
                 1024,  # 录制1024个样本
-                samplerate=self.porcupine.sample_rate,
+                samplerate=device_sample_rate,
                 channels=1,
                 device=self.device_id,
                 dtype=np.int16
@@ -148,17 +149,28 @@ class SoundDeviceWakeWordDetector:
         print("🎤 启动sounddevice检测线程...")
         
         frame_length = self.porcupine.frame_length
-        sample_rate = self.porcupine.sample_rate
+        target_sample_rate = self.porcupine.sample_rate  # 16000
+        device_sample_rate = 48000  # ReSpeaker设备采样率
+        
+        # 计算设备需要的样本数
+        device_frame_length = int(frame_length * device_sample_rate / target_sample_rate)
+        
+        print(f"📊 目标采样率: {target_sample_rate}Hz")
+        print(f"📊 设备采样率: {device_sample_rate}Hz") 
+        print(f"📏 目标帧长度: {frame_length}")
+        print(f"📏 设备帧长度: {device_frame_length}")
         
         detection_count = 0
         
         try:
+            from scipy import signal as scipy_signal
+            
             while self.is_listening:
                 try:
-                    # 使用sounddevice录制音频
+                    # 使用设备采样率录制音频
                     audio_chunk = sd.rec(
-                        frame_length,
-                        samplerate=sample_rate,
+                        device_frame_length,
+                        samplerate=device_sample_rate,
                         channels=1,
                         device=self.device_id,
                         dtype=np.int16
@@ -168,12 +180,15 @@ class SoundDeviceWakeWordDetector:
                     # 转换为1维数组
                     audio_data = audio_chunk.flatten()
                     
-                    if len(audio_data) != frame_length:
-                        print(f"⚠️ 音频数据长度不匹配: {len(audio_data)} != {frame_length}")
+                    # 重采样到目标采样率
+                    resampled_audio = scipy_signal.resample(audio_data, frame_length).astype(np.int16)
+                    
+                    if len(resampled_audio) != frame_length:
+                        print(f"⚠️ 重采样后长度不匹配: {len(resampled_audio)} != {frame_length}")
                         continue
                     
                     # 检测唤醒词
-                    keyword_index = self.porcupine.process(audio_data)
+                    keyword_index = self.porcupine.process(resampled_audio)
                     
                     detection_count += 1
                     if detection_count % 100 == 0:
