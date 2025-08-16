@@ -1637,6 +1637,27 @@ if __name__ == '__main__':
         camera_init_thread.daemon = True
         camera_init_thread.start()
         
+        # 自动启动语音控制
+        def init_voice_background():
+            global voice_control_enabled, voice_controller
+            try:
+                logger.info("正在自动启动语音控制...")
+                voice_controller = VoiceController(robot=clbrobot)
+                voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
+                
+                if voice_controller.start():
+                    voice_control_enabled = True
+                    logger.info("✅ 语音控制自动启动成功")
+                    print("💡 语音控制已启动，说出命令即可控制机器人")
+                else:
+                    logger.warning("⚠️ 语音控制自动启动失败，可通过Web界面手动启动")
+            except Exception as e:
+                logger.warning(f"⚠️ 语音控制自动启动异常: {e}")
+        
+        voice_init_thread = threading.Thread(target=init_voice_background)
+        voice_init_thread.daemon = True
+        voice_init_thread.start()
+        
         print("机器人语音Web控制服务启动于 http://0.0.0.0:5000")
         print("支持的语音命令: 向前、向后、左转、右转、停止、快一点、慢一点等")
         
