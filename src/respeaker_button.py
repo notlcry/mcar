@@ -164,8 +164,8 @@ def test_respeaker_button():
     print("🤖 ReSpeaker按钮测试程序")
     print("=" * 30)
     
-    # 测试不同的可能引脚
-    possible_pins = [17, 18, 19, 20, 21, 26]
+    # 测试不同的可能引脚（扩展范围）
+    possible_pins = [2, 3, 4, 5, 6, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
     
     for pin in possible_pins:
         print(f"\n🔍 测试GPIO{pin}...")

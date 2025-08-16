@@ -97,7 +97,8 @@ def init_respeaker_button():
     global respeaker_button
     
     try:
-        respeaker_button = ReSpeakerButton(button_pin=17)
+        # ReSpeaker 2-Mics Pi HAT按钮通常在GPIO3
+        respeaker_button = ReSpeakerButton(button_pin=3)
         respeaker_button.set_callback(on_respeaker_button_pressed)
         
         if respeaker_button.start_listening():
@@ -116,23 +117,27 @@ def on_respeaker_button_pressed():
     global enhanced_voice_controller
     
     logger.info("🔘 ReSpeaker按钮被按下，启动语音对话")
+    print("🔘 按钮按下检测！")  # 控制台提示
     
     try:
         if enhanced_voice_controller and enhanced_voice_controller.conversation_mode:
-            # 模拟唤醒词被检测到
-            if hasattr(enhanced_voice_controller, '_on_wake_word_detected'):
-                enhanced_voice_controller._on_wake_word_detected(0)
-                logger.info("🎤 按钮唤醒成功，开始监听语音")
-            else:
-                # 直接设置唤醒状态
-                enhanced_voice_controller.wake_word_detected = True
-                enhanced_voice_controller.last_interaction_time = time.time()
-                logger.info("🎤 按钮唤醒成功，请开始说话")
+            # 直接设置唤醒状态
+            enhanced_voice_controller.wake_word_detected = True
+            enhanced_voice_controller.last_interaction_time = time.time()
+            
+            # 播放按钮确认音效
+            if hasattr(enhanced_voice_controller, 'speak_text'):
+                enhanced_voice_controller.speak_text("我听到了，请说话", priority=True)
+            
+            logger.info("🎤 按钮唤醒成功，请开始说话")
+            print("🎤 语音对话已激活，请开始说话")
         else:
             logger.warning("🔘 按钮按下，但语音系统未就绪")
+            print("⚠️ 语音系统未就绪")
             
     except Exception as e:
         logger.error(f"🔘 按钮回调处理错误: {e}")
+        print(f"❌ 按钮处理错误: {e}")
 
 def ultrasonic_distance():
     """测量超声波距离"""
@@ -591,6 +596,9 @@ def wake_conversation():
             
             # 调用与ReSpeaker按钮相同的回调函数
             on_respeaker_button_pressed()
+            
+            # 额外的Web响应确认
+            logger.info("✅ Web界面唤醒语音对话成功")
             
             return jsonify({
                 'status': 'success',
@@ -1684,7 +1692,7 @@ if __name__ == '__main__':
                     voice_control_enabled = True
                     voice_controller = enhanced_voice_controller
                     logger.info("✅ 增强语音控制和对话模式启动成功")
-                    print("💡 增强语音控制已启动，说'快快'来唤醒机器人")
+                    print("💡 增强语音控制已启动，请使用ReSpeaker按钮或Web按钮启动对话")
                 else:
                     logger.warning("增强语音控制对话模式启动失败，尝试基础模式...")
                     
@@ -1733,7 +1741,7 @@ if __name__ == '__main__':
                 import tempfile
                 
                 async def generate_and_play():
-                    text = "机器人启动完成，说快快来唤醒我吧"
+                    text = "机器人启动完成，请按下ReSpeaker按钮或点击网页按钮开始对话"
                     voice = "zh-CN-XiaoxiaoNeural"
                     
                     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
