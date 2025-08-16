@@ -13,6 +13,7 @@ from ai_conversation import AIConversationManager
 from emotion_engine import EmotionEngine
 from personality_manager import PersonalityManager
 from safety_manager import SafetyManager
+from respeaker_button import ReSpeakerButton
 import RPi.GPIO as GPIO
 import threading
 import time
@@ -53,6 +54,7 @@ ai_conversation_manager = None   # AI对话管理器实例
 emotion_engine = None            # 情感引擎实例
 personality_manager = None       # 个性管理器实例
 safety_manager = None            # 安全管理器实例
+respeaker_button = None          # ReSpeaker按钮控制器实例
 
 # 会话状态管理
 current_session_id = None        # 当前会话ID
@@ -89,6 +91,48 @@ def setup_sensors():
     GPIO.setup(ECHO, GPIO.IN)
     
     print("传感器初始化完成")
+
+def init_respeaker_button():
+    """初始化ReSpeaker板载按钮"""
+    global respeaker_button
+    
+    try:
+        respeaker_button = ReSpeakerButton(button_pin=17)
+        respeaker_button.set_callback(on_respeaker_button_pressed)
+        
+        if respeaker_button.start_listening():
+            print("🔘 ReSpeaker按钮初始化成功")
+            print("💡 按下ReSpeaker按钮开始语音对话")
+        else:
+            print("⚠️ ReSpeaker按钮启动失败")
+            respeaker_button = None
+            
+    except Exception as e:
+        print(f"❌ ReSpeaker按钮初始化失败: {e}")
+        respeaker_button = None
+
+def on_respeaker_button_pressed():
+    """ReSpeaker按钮按下时的回调函数"""
+    global enhanced_voice_controller
+    
+    logger.info("🔘 ReSpeaker按钮被按下，启动语音对话")
+    
+    try:
+        if enhanced_voice_controller and enhanced_voice_controller.conversation_mode:
+            # 模拟唤醒词被检测到
+            if hasattr(enhanced_voice_controller, '_on_wake_word_detected'):
+                enhanced_voice_controller._on_wake_word_detected(0)
+                logger.info("🎤 按钮唤醒成功，开始监听语音")
+            else:
+                # 直接设置唤醒状态
+                enhanced_voice_controller.wake_word_detected = True
+                enhanced_voice_controller.last_interaction_time = time.time()
+                logger.info("🎤 按钮唤醒成功，请开始说话")
+        else:
+            logger.warning("🔘 按钮按下，但语音系统未就绪")
+            
+    except Exception as e:
+        logger.error(f"🔘 按钮回调处理错误: {e}")
 
 def ultrasonic_distance():
     """测量超声波距离"""
@@ -534,6 +578,36 @@ def toggle_obstacle_avoidance():
         'status': 'success',
         'enabled': auto_obstacle_avoidance
     })
+
+@app.route('/api/wake_conversation', methods=['POST'])
+def wake_conversation():
+    """Web界面唤醒语音对话"""
+    global enhanced_voice_controller
+    
+    try:
+        if enhanced_voice_controller and enhanced_voice_controller.conversation_mode:
+            # 模拟按钮唤醒
+            logger.info("Web界面请求唤醒语音对话")
+            
+            # 调用与ReSpeaker按钮相同的回调函数
+            on_respeaker_button_pressed()
+            
+            return jsonify({
+                'status': 'success',
+                'message': '语音对话已唤醒，请开始说话'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '语音系统未启动，请先启动语音控制'
+            })
+            
+    except Exception as e:
+        logger.error(f"Web唤醒语音对话失败: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'唤醒失败: {str(e)}'
+        })
 
 @app.route('/voice_control', methods=['POST'])
 def toggle_voice_control():
@@ -1584,6 +1658,9 @@ if __name__ == '__main__':
         sensor_thread.daemon = True
         sensor_thread.start()
         
+        # 初始化ReSpeaker按钮
+        init_respeaker_button()
+        
         # 摄像头已损坏，跳过初始化
         print("ℹ️ 摄像头已禁用（设备损坏）")
         
@@ -1710,6 +1787,10 @@ if __name__ == '__main__':
             
         if ai_conversation_manager:
             ai_conversation_manager.stop_conversation_mode()
+            
+        # 停止ReSpeaker按钮
+        if respeaker_button:
+            respeaker_button.cleanup()
             
         # 释放摄像头资源
         if camera_type == "picamera" and picam:

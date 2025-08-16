@@ -41,6 +41,7 @@
             border-radius: 10px;
             overflow: hidden;
             background-color: #000;
+            display: none; /* 默认隐藏摄像头区域 */
         }
         .video-feed {
             position: absolute;
@@ -348,6 +349,26 @@
             color: white;
             animation: pulse 2s infinite;
         }
+        .voice-conversation-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            background-color: #28a745;
+            color: white;
+            transition: all 0.3s;
+        }
+        .voice-conversation-btn:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+        }
+        .voice-conversation-btn:active {
+            background-color: #1e7e34;
+            animation: pulse 0.3s;
+        }
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
@@ -579,6 +600,11 @@
                     </button>
                     <div class="voice-status" id="voiceStatus">语音控制已关闭</div>
                     
+                    <!-- 语音对话按钮 -->
+                    <button class="voice-conversation-btn" id="voiceConversationBtn">
+                        <i class="fas fa-comments"></i> 开始语音对话
+                    </button>
+                    
                     <div class="voice-commands">
                         <h6><i class="fas fa-info-circle"></i> 支持的语音命令：</h6>
                         <div class="command-group">
@@ -664,7 +690,7 @@
                         <i class="fas fa-shield-alt"></i> 避障
                     </button>
                     <button class="toggle-btn toggle-off" id="cameraToggle">
-                        <i class="fas fa-video"></i> 摄像头
+                        <i class="fas fa-video-slash"></i> 摄像头隐藏
                     </button>
                 </div>
                 
@@ -797,6 +823,9 @@
             // 语音控制切换
             document.getElementById('voiceToggle').addEventListener('click', toggleVoiceControl);
             
+            // 语音对话按钮
+            document.getElementById('voiceConversationBtn').addEventListener('click', startVoiceConversation);
+            
             // AI对话控制切换
             document.getElementById('aiToggle').addEventListener('click', toggleAIConversation);
             
@@ -870,6 +899,58 @@
             }
         }
         
+        // 开始语音对话
+        async function startVoiceConversation() {
+            const button = document.getElementById('voiceConversationBtn');
+            
+            try {
+                button.style.backgroundColor = '#ffc107';
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 唤醒中...';
+                
+                const response = await fetch('/api/wake_conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    button.style.backgroundColor = '#28a745';
+                    button.innerHTML = '<i class="fas fa-microphone"></i> 已唤醒，请说话';
+                    logStatus('语音对话已唤醒，请开始说话');
+                    
+                    // 3秒后恢复按钮状态
+                    setTimeout(() => {
+                        button.style.backgroundColor = '#28a745';
+                        button.innerHTML = '<i class="fas fa-comments"></i> 开始语音对话';
+                    }, 3000);
+                } else {
+                    button.style.backgroundColor = '#dc3545';
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 唤醒失败';
+                    logStatus('语音对话唤醒失败: ' + (data.message || '未知错误'));
+                    
+                    // 2秒后恢复按钮状态
+                    setTimeout(() => {
+                        button.style.backgroundColor = '#28a745';
+                        button.innerHTML = '<i class="fas fa-comments"></i> 开始语音对话';
+                    }, 2000);
+                }
+            } catch (error) {
+                button.style.backgroundColor = '#dc3545';
+                button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 网络错误';
+                logStatus('语音对话请求失败: ' + error.message);
+                console.error('Voice conversation error:', error);
+                
+                // 2秒后恢复按钮状态
+                setTimeout(() => {
+                    button.style.backgroundColor = '#28a745';
+                    button.innerHTML = '<i class="fas fa-comments"></i> 开始语音对话';
+                }, 2000);
+            }
+        }
+        
         // 发送控制命令
         async function sendCommand(command, duration = 0) {
             try {
@@ -936,27 +1017,24 @@
         // 切换摄像头
         async function toggleCamera() {
             const button = document.getElementById('cameraToggle');
+            const videoContainer = document.getElementsByClassName('video-container')[0];
             
             try {
-                const response = await fetch('/camera/toggle', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                
-                const data = await response.json();
-                if (data.status === 'success') {
-                    if (data.enabled) {
-                        button.className = 'toggle-btn toggle-on';
-                        button.innerHTML = '<i class="fas fa-video"></i> 摄像头开';
-                        logStatus('摄像头已启用');
-                    } else {
-                        button.className = 'toggle-btn toggle-off';
-                        button.innerHTML = '<i class="fas fa-video"></i> 摄像头关';
-                        logStatus('摄像头已禁用');
-                    }
+                // 切换摄像头区域的显示状态（摄像头已禁用，只切换显示）
+                if (videoContainer.style.display === 'none' || videoContainer.style.display === '') {
+                    videoContainer.style.display = 'block';
+                    button.className = 'toggle-btn toggle-on';
+                    button.innerHTML = '<i class="fas fa-video"></i> 摄像头显示';
+                    logStatus('摄像头区域已显示（摄像头已禁用）');
+                } else {
+                    videoContainer.style.display = 'none';
+                    button.className = 'toggle-btn toggle-off';
+                    button.innerHTML = '<i class="fas fa-video-slash"></i> 摄像头隐藏';
+                    logStatus('摄像头区域已隐藏');
                 }
             } catch (error) {
-                console.error('Camera toggle error:', error);
+                console.error('Camera display toggle error:', error);
+                logStatus('摄像头显示切换失败: ' + error.message);
             }
         }
         
