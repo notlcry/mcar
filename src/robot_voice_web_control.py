@@ -1647,6 +1647,53 @@ if __name__ == '__main__':
         print("机器人语音Web控制服务启动于 http://0.0.0.0:5000")
         print("支持的语音命令: 向前、向后、左转、右转、停止、快一点、慢一点等")
         
+        # 播放启动完成提示音
+        def play_startup_complete():
+            try:
+                import asyncio
+                import edge_tts
+                import subprocess
+                import tempfile
+                
+                async def generate_and_play():
+                    text = "机器人启动完成，说快快来唤醒我吧"
+                    voice = "zh-CN-XiaoxiaoNeural"
+                    
+                    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+                        mp3_path = tmp_file.name
+                    
+                    # 生成语音
+                    communicate = edge_tts.Communicate(text, voice)
+                    await communicate.save(mp3_path)
+                    
+                    # 转换并播放
+                    wav_path = mp3_path.replace(".mp3", ".wav")
+                    subprocess.run(["ffmpeg", "-i", mp3_path, "-y", wav_path], 
+                                 capture_output=True)
+                    
+                    # 播放
+                    result = subprocess.run(["/usr/bin/aplay", "-D", "hw:0,0", wav_path], 
+                                          capture_output=True)
+                    
+                    if result.returncode != 0:
+                        subprocess.run(["/usr/bin/aplay", wav_path], capture_output=True)
+                    
+                    # 清理
+                    os.unlink(mp3_path)
+                    if os.path.exists(wav_path):
+                        os.unlink(wav_path)
+                
+                asyncio.run(generate_and_play())
+                print("🔊 启动提示音已播放")
+                
+            except Exception as e:
+                print(f"⚠️ 启动提示音播放失败: {e}")
+        
+        # 在单独线程中播放提示音，不阻塞Flask启动
+        startup_sound_thread = threading.Thread(target=play_startup_complete)
+        startup_sound_thread.daemon = True
+        startup_sound_thread.start()
+        
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
         
     except KeyboardInterrupt:
