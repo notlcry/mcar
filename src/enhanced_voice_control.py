@@ -213,7 +213,7 @@ class EnhancedVoiceController(VoiceController):
             }
             
             self.azure_tts = AzureTTS(**azure_config)
-            logger.info("🎤 Azure TTS备选方案初始化成功")
+            logger.info("🎤 Azure TTS主要方案初始化成功")
             return True
             
         except Exception as e:
@@ -920,33 +920,35 @@ class EnhancedVoiceController(VoiceController):
                 self.safety_manager.handle_api_failure("tts_error", 0)
     
     async def _async_generate_speech(self, text, output_path):
-        """异步生成语音 - 支持Azure TTS备选方案"""
+        """异步生成语音 - Azure TTS为主，edge-tts为备选"""
+        # 优先使用Azure TTS
+        if self.azure_tts:
+            try:
+                logger.debug("尝试使用Azure TTS生成语音")
+                success = self.azure_tts.synthesize_to_file(text, output_path)
+                if success:
+                    logger.debug("Azure TTS生成成功")
+                    return True
+                else:
+                    logger.warning("Azure TTS生成失败")
+            except Exception as azure_e:
+                logger.warning(f"Azure TTS异常: {azure_e}")
+        else:
+            logger.debug("Azure TTS未配置")
+        
+        # 备选方案：使用edge-tts
         try:
-            # 优先使用edge-tts
-            logger.debug("尝试使用edge-tts生成语音")
+            logger.info("尝试使用edge-tts备选方案")
             communicate = edge_tts.Communicate(text, self.tts_voice)
             await communicate.save(output_path)
-            logger.debug("edge-tts生成成功")
+            logger.info("edge-tts生成成功")
             return True
         except Exception as e:
-            logger.warning(f"edge-tts语音生成失败: {e}")
-            
-            # 尝试Azure TTS备选方案
-            if self.azure_tts:
-                try:
-                    logger.info("尝试使用Azure TTS备选方案")
-                    success = self.azure_tts.synthesize_to_file(text, output_path)
-                    if success:
-                        logger.info("Azure TTS生成成功")
-                        return True
-                    else:
-                        logger.error("Azure TTS生成失败")
-                except Exception as azure_e:
-                    logger.error(f"Azure TTS异常: {azure_e}")
+            logger.error(f"edge-tts语音生成失败: {e}")
             
             # 两种TTS都失败
             logger.error("所有TTS方案都失败")
-            raise Exception(f"TTS生成失败: edge-tts错误={e}, Azure TTS不可用或失败")
+            raise Exception(f"TTS生成失败: Azure TTS不可用或失败, edge-tts错误={e}")
     
     def _play_audio_file_pygame(self, file_path):
         """使用可靠的音频播放方式"""

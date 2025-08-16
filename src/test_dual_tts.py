@@ -23,14 +23,14 @@ async def test_dual_tts():
         print("✅ 语音控制器初始化成功")
         
         # 测试文本
-        test_text = "双TTS系统测试，我是快快机器人"
+        test_text = "双TTS系统测试，我是快快机器人，现在Azure TTS为主要方案"
         
         # 创建临时文件
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
             tmp_path = tmp_file.name
         
         try:
-            # 调用异步语音生成（会自动尝试edge-tts，失败时使用Azure TTS）
+            # 调用异步语音生成（会自动尝试Azure TTS，失败时使用edge-tts）
             success = await controller._async_generate_speech(test_text, tmp_path)
             
             if success:
@@ -62,7 +62,8 @@ async def test_dual_tts():
 async def main():
     """主函数"""
     print("🤖 MCAR双TTS系统测试")
-    print("=" * 30)
+    print("📋 Azure TTS (主要) + edge-tts (备选)")
+    print("=" * 40)
     
     if await test_dual_tts():
         print("\n✅ 双TTS系统测试通过")
