@@ -32,7 +32,28 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-clbrobot = LOBOROBOT()  # 实例化机器人对象
+
+# 安全的机器人初始化
+clbrobot = None
+try:
+    clbrobot = LOBOROBOT()  # 实例化机器人对象
+    print("✅ 机器人硬件初始化成功")
+except Exception as e:
+    print(f"⚠️ 机器人硬件初始化失败: {e}")
+    print("💡 将在模拟模式下运行")
+    # 创建一个模拟机器人类
+    class MockRobot:
+        def t_up(self, *args): print(f"🎭 模拟：前进")
+        def t_down(self, *args): print(f"🎭 模拟：后退") 
+        def t_left(self, *args): print(f"🎭 模拟：左转")
+        def t_right(self, *args): print(f"🎭 模拟：右转")
+        def t_stop(self, *args): print(f"🎭 模拟：停止")
+        def t_up_left(self, *args): print(f"🎭 模拟：左前")
+        def t_up_right(self, *args): print(f"🎭 模拟：右前")
+        def t_down_left(self, *args): print(f"🎭 模拟：左后")
+        def t_down_right(self, *args): print(f"🎭 模拟：右后")
+    
+    clbrobot = MockRobot()
 
 # 传感器引脚定义
 SensorRight = 16  # 右侧红外避障传感器
@@ -97,8 +118,8 @@ def init_respeaker_button():
     global respeaker_button
     
     try:
-        # ReSpeaker 2-Mics Pi HAT按钮通常在GPIO3
-        respeaker_button = ReSpeakerButton(button_pin=3)
+        # 使用GPIO17，避免与I2C冲突
+        respeaker_button = ReSpeakerButton(button_pin=17)
         respeaker_button.set_callback(on_respeaker_button_pressed)
         
         if respeaker_button.start_listening():
@@ -1666,8 +1687,8 @@ if __name__ == '__main__':
         sensor_thread.daemon = True
         sensor_thread.start()
         
-        # 暂时禁用ReSpeaker按钮，专注修复基本功能
-        # init_respeaker_button()
+        # 暂时完全禁用ReSpeaker按钮，避免GPIO冲突
+        print("ℹ️ ReSpeaker按钮已禁用（调试模式）")
         
         # 摄像头已损坏，跳过初始化
         print("ℹ️ 摄像头已禁用（设备损坏）")
