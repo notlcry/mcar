@@ -885,12 +885,8 @@ class EnhancedVoiceController(VoiceController):
     async def _async_generate_speech(self, text, output_path):
         """异步生成语音"""
         try:
-            communicate = edge_tts.Communicate(
-                text, 
-                self.tts_voice,
-                rate=self.tts_rate,
-                volume=self.tts_volume
-            )
+            # 简化参数，避免网络问题
+            communicate = edge_tts.Communicate(text, self.tts_voice)
             await communicate.save(output_path)
         except Exception as e:
             logger.error(f"edge-tts语音生成失败: {e}")
