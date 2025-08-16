@@ -68,12 +68,12 @@ sensor_data = {
     "last_update": 0   # 最后更新时间
 }
 
-# 摄像头设置
+# 摄像头设置 - 已禁用（设备损坏）
 camera = None
 picam = None
-camera_enabled = True
+camera_enabled = False  # 强制禁用摄像头
 camera_resolution = (320, 240)  # 降低分辨率
-camera_type = "unknown"  # "picamera" 或 "webcam"
+camera_type = "disabled"  # 摄像头已禁用
 
 def setup_sensors():
     """初始化传感器"""
@@ -333,53 +333,12 @@ def obstacle_avoidance():
             last_command = "obstacle_avoiding"
 
 def initialize_camera():
+    """摄像头已禁用 - 设备损坏"""
     global camera, picam, camera_type
     
-    # 首先尝试使用PiCamera
-    try:
-        print("尝试初始化树莓派官方摄像头(PiCamera)...")
-        picam = PiCamera()
-        picam.resolution = camera_resolution
-        picam.framerate = 15  # 降低帧率
-        picam.vflip = True  # 垂直翻转图像
-        picam.hflip = True  # 水平翻转图像
-        # 给摄像头更多的初始化时间
-        time.sleep(2)
-        camera_type = "picamera"
-        print(f"树莓派官方摄像头初始化成功，分辨率: {camera_resolution[0]}x{camera_resolution[1]}")
-        return True
-    except Exception as e:
-        print(f"树莓派官方摄像头初始化失败: {str(e)}")
-        if picam:
-            picam.close()
-            picam = None
-            
-    # 如果PiCamera失败，尝试普通USB摄像头
-    try:
-        print("尝试初始化普通USB摄像头...")
-        camera = cv2.VideoCapture(0)
-        # 设置超时，避免无限等待
-        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        
-        if not camera.isOpened():
-            print("无法打开USB摄像头")
-            return False
-            
-        # 设置摄像头属性
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, camera_resolution[0])
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_resolution[1])
-        camera.set(cv2.CAP_PROP_FPS, 15)
-        
-        camera_type = "webcam"
-        print(f"USB摄像头初始化成功，分辨率: {camera_resolution[0]}x{camera_resolution[1]}")
-        return True
-        
-    except Exception as e:
-        print(f"USB摄像头初始化失败: {str(e)}")
-        if camera:
-            camera.release()
-            camera = None
-        return False
+    camera_type = "disabled"
+    print("ℹ️ 摄像头功能已禁用（设备损坏）")
+    return False
 
 def generate_frames():
     """生成视频流帧"""
@@ -1630,30 +1589,29 @@ if __name__ == '__main__':
         
         # 自动启动增强语音控制（包含TTS反馈）
         def init_voice_background():
-            global voice_control_enabled, voice_controller
+            global voice_control_enabled, voice_controller, enhanced_voice_controller
             try:
                 logger.info("正在自动启动增强语音控制...")
                 
+                # 等待2秒让系统稳定
+                time.sleep(2)
+                
                 # 使用增强语音控制器，包含TTS功能
-                voice_controller = EnhancedVoiceController(
+                enhanced_voice_controller = EnhancedVoiceController(
                     robot=clbrobot,
                     test_mode=False  # 不是测试模式，启用音频
                 )
-                voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
                 
-                if voice_controller.start():
+                # 启动对话模式（这是关键！）
+                if enhanced_voice_controller.start_conversation_mode():
                     voice_control_enabled = True
-                    logger.info("✅ 增强语音控制自动启动成功")
-                    print("💡 增强语音控制已启动，包含语音反馈功能")
-                    
-                    # 播放启动提示音
-                    try:
-                        voice_controller.speak_text("语音控制系统已启动")
-                    except:
-                        pass
+                    voice_controller = enhanced_voice_controller
+                    logger.info("✅ 增强语音控制和对话模式启动成功")
+                    print("💡 增强语音控制已启动，说'快快'来唤醒机器人")
                 else:
+                    logger.warning("增强语音控制对话模式启动失败，尝试基础模式...")
+                    
                     # 回退到基础语音控制器
-                    logger.warning("增强语音控制启动失败，尝试基础语音控制...")
                     voice_controller = VoiceController(robot=clbrobot)
                     voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
                     
@@ -1665,16 +1623,22 @@ if __name__ == '__main__':
                         logger.warning("⚠️ 语音控制完全启动失败")
                         
             except Exception as e:
-                logger.warning(f"⚠️ 语音控制自动启动异常: {e}")
+                logger.error(f"⚠️ 语音控制自动启动异常: {e}")
+                import traceback
+                traceback.print_exc()
+                
                 # 最后尝试基础语音控制
                 try:
+                    logger.info("尝试启动基础语音控制作为备选...")
                     voice_controller = VoiceController(robot=clbrobot)
                     voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
                     if voice_controller.start():
                         voice_control_enabled = True
                         logger.info("✅ 基础语音控制启动成功（备用模式）")
-                except:
-                    logger.error("❌ 所有语音控制启动尝试均失败")
+                    else:
+                        logger.error("❌ 所有语音控制启动尝试均失败")
+                except Exception as e2:
+                    logger.error(f"❌ 备用语音控制也失败: {e2}")
         
         voice_init_thread = threading.Thread(target=init_voice_background)
         voice_init_thread.daemon = True
