@@ -207,7 +207,7 @@ class EnhancedVoiceController(VoiceController):
                 "endpoint": azure_endpoint,
                 "api_key": azure_api_key,
                 "region": azure_region,
-                "voice": "zh-CN-YunyangNeural",
+                "voice": "zh-CN-XiaoxiaoNeural",
                 "rate": "medium",
                 "output_format": "audio-24khz-48kbitrate-mono-mp3"
             }

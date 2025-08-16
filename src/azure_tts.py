@@ -88,7 +88,7 @@ def test_azure_tts():
         "endpoint": endpoint,
         "api_key": api_key,
         "region": region,
-        "voice": "zh-CN-YunyangNeural",
+        "voice": "zh-CN-XiaoxiaoNeural",
         "rate": "medium",
         "output_format": "audio-24khz-48kbitrate-mono-mp3"
     }
