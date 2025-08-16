@@ -28,6 +28,7 @@ import asyncio
 import edge_tts
 import pygame
 import re
+from azure_tts import AzureTTS
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, 
@@ -76,6 +77,10 @@ class EnhancedVoiceController(VoiceController):
         self.tts_voice = "zh-CN-XiaoxiaoNeural"  # 中文女声
         self.tts_rate = "+0%"
         self.tts_volume = "+0%"
+        
+        # Azure TTS备选方案
+        self.azure_tts = None
+        self._initialize_azure_tts()
         
         # 唤醒词检测器
         self.wake_word_detector = None
@@ -183,6 +188,38 @@ class EnhancedVoiceController(VoiceController):
         except Exception as e:
             logger.warning(f"显示控制器初始化失败: {e}")
             self.display_controller = None
+    
+    def _initialize_azure_tts(self):
+        """初始化Azure TTS备选方案"""
+        try:
+            # 从环境变量获取Azure配置
+            azure_endpoint = os.getenv("AZURE_TTS_ENDPOINT")
+            azure_api_key = os.getenv("AZURE_TTS_API_KEY") 
+            azure_region = os.getenv("AZURE_TTS_REGION", "eastus")
+            
+            if not azure_endpoint or not azure_api_key:
+                logger.info("Azure TTS配置未设置，跳过初始化")
+                self.azure_tts = None
+                return False
+            
+            # Azure Speech配置
+            azure_config = {
+                "endpoint": azure_endpoint,
+                "api_key": azure_api_key,
+                "region": azure_region,
+                "voice": "zh-CN-YunyangNeural",
+                "rate": "medium",
+                "output_format": "audio-24khz-48kbitrate-mono-mp3"
+            }
+            
+            self.azure_tts = AzureTTS(**azure_config)
+            logger.info("🎤 Azure TTS备选方案初始化成功")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Azure TTS初始化失败: {e}")
+            self.azure_tts = None
+            return False
     
     def _initialize_audio_playback(self):
         """初始化音频播放系统"""
@@ -883,14 +920,33 @@ class EnhancedVoiceController(VoiceController):
                 self.safety_manager.handle_api_failure("tts_error", 0)
     
     async def _async_generate_speech(self, text, output_path):
-        """异步生成语音"""
+        """异步生成语音 - 支持Azure TTS备选方案"""
         try:
-            # 简化参数，避免网络问题
+            # 优先使用edge-tts
+            logger.debug("尝试使用edge-tts生成语音")
             communicate = edge_tts.Communicate(text, self.tts_voice)
             await communicate.save(output_path)
+            logger.debug("edge-tts生成成功")
+            return True
         except Exception as e:
-            logger.error(f"edge-tts语音生成失败: {e}")
-            raise
+            logger.warning(f"edge-tts语音生成失败: {e}")
+            
+            # 尝试Azure TTS备选方案
+            if self.azure_tts:
+                try:
+                    logger.info("尝试使用Azure TTS备选方案")
+                    success = self.azure_tts.synthesize_to_file(text, output_path)
+                    if success:
+                        logger.info("Azure TTS生成成功")
+                        return True
+                    else:
+                        logger.error("Azure TTS生成失败")
+                except Exception as azure_e:
+                    logger.error(f"Azure TTS异常: {azure_e}")
+            
+            # 两种TTS都失败
+            logger.error("所有TTS方案都失败")
+            raise Exception(f"TTS生成失败: edge-tts错误={e}, Azure TTS不可用或失败")
     
     def _play_audio_file_pygame(self, file_path):
         """使用可靠的音频播放方式"""
