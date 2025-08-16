@@ -43,8 +43,19 @@ def test_wake_word_detection():
         if wake_detector.porcupine:
             print("✅ Porcupine初始化成功")
             print("🎯 支持的唤醒词:")
-            for i, keyword in enumerate(wake_detector.keywords):
-                print(f"   {i}: {keyword}")
+            
+            # 检查是否使用自定义唤醒词文件
+            if wake_detector.keyword_paths:
+                print("   使用自定义唤醒词文件:")
+                for i, path in enumerate(wake_detector.keyword_paths):
+                    filename = os.path.basename(path)
+                    print(f"   {i}: {filename}")
+            elif wake_detector.keywords:
+                print("   使用内置唤醒词:")
+                for i, keyword in enumerate(wake_detector.keywords):
+                    print(f"   {i}: {keyword}")
+            else:
+                print("   ⚠️ 唤醒词配置异常")
             
             print("\n🎤 开始监听唤醒词（请说'快快'）...")
             print("💡 说话提示: 清晰地说'快快'，距离麦克风30-50cm")
