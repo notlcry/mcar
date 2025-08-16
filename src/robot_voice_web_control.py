@@ -1625,34 +1625,56 @@ if __name__ == '__main__':
         sensor_thread.daemon = True
         sensor_thread.start()
         
-        # 在后台线程中初始化摄像头，避免阻塞Flask启动
-        def init_camera_background():
-            try:
-                if not initialize_camera():
-                    print("警告: 摄像头初始化失败，继续运行但无视频流")
-            except Exception as e:
-                print(f"摄像头初始化异常: {e}")
+        # 摄像头已损坏，跳过初始化
+        print("ℹ️ 摄像头已禁用（设备损坏）")
         
-        camera_init_thread = threading.Thread(target=init_camera_background)
-        camera_init_thread.daemon = True
-        camera_init_thread.start()
-        
-        # 自动启动语音控制
+        # 自动启动增强语音控制（包含TTS反馈）
         def init_voice_background():
             global voice_control_enabled, voice_controller
             try:
-                logger.info("正在自动启动语音控制...")
-                voice_controller = VoiceController(robot=clbrobot)
+                logger.info("正在自动启动增强语音控制...")
+                
+                # 使用增强语音控制器，包含TTS功能
+                voice_controller = EnhancedVoiceController(
+                    robot=clbrobot,
+                    test_mode=False  # 不是测试模式，启用音频
+                )
                 voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
                 
                 if voice_controller.start():
                     voice_control_enabled = True
-                    logger.info("✅ 语音控制自动启动成功")
-                    print("💡 语音控制已启动，说出命令即可控制机器人")
+                    logger.info("✅ 增强语音控制自动启动成功")
+                    print("💡 增强语音控制已启动，包含语音反馈功能")
+                    
+                    # 播放启动提示音
+                    try:
+                        voice_controller.speak_text("语音控制系统已启动")
+                    except:
+                        pass
                 else:
-                    logger.warning("⚠️ 语音控制自动启动失败，可通过Web界面手动启动")
+                    # 回退到基础语音控制器
+                    logger.warning("增强语音控制启动失败，尝试基础语音控制...")
+                    voice_controller = VoiceController(robot=clbrobot)
+                    voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
+                    
+                    if voice_controller.start():
+                        voice_control_enabled = True
+                        logger.info("✅ 基础语音控制启动成功（无语音反馈）")
+                        print("💡 基础语音控制已启动（仅识别命令，无声音反馈）")
+                    else:
+                        logger.warning("⚠️ 语音控制完全启动失败")
+                        
             except Exception as e:
                 logger.warning(f"⚠️ 语音控制自动启动异常: {e}")
+                # 最后尝试基础语音控制
+                try:
+                    voice_controller = VoiceController(robot=clbrobot)
+                    voice_controller._execute_robot_command = lambda cmd: execute_robot_command(cmd, 1.0)
+                    if voice_controller.start():
+                        voice_control_enabled = True
+                        logger.info("✅ 基础语音控制启动成功（备用模式）")
+                except:
+                    logger.error("❌ 所有语音控制启动尝试均失败")
         
         voice_init_thread = threading.Thread(target=init_voice_background)
         voice_init_thread.daemon = True
