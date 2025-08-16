@@ -41,7 +41,7 @@
             border-radius: 10px;
             overflow: hidden;
             background-color: #000;
-            display: none; /* 默认隐藏摄像头区域 */
+            display: none !important; /* 强制隐藏摄像头区域 */
         }
         .video-feed {
             position: absolute;
@@ -1014,27 +1014,18 @@
             }
         }
         
-        // 切换摄像头
+        // 切换摄像头（已完全禁用）
         async function toggleCamera() {
             const button = document.getElementById('cameraToggle');
-            const videoContainer = document.getElementsByClassName('video-container')[0];
             
             try {
-                // 切换摄像头区域的显示状态（摄像头已禁用，只切换显示）
-                if (videoContainer.style.display === 'none' || videoContainer.style.display === '') {
-                    videoContainer.style.display = 'block';
-                    button.className = 'toggle-btn toggle-on';
-                    button.innerHTML = '<i class="fas fa-video"></i> 摄像头显示';
-                    logStatus('摄像头区域已显示（摄像头已禁用）');
-                } else {
-                    videoContainer.style.display = 'none';
-                    button.className = 'toggle-btn toggle-off';
-                    button.innerHTML = '<i class="fas fa-video-slash"></i> 摄像头隐藏';
-                    logStatus('摄像头区域已隐藏');
-                }
+                // 摄像头已完全禁用，不允许任何操作
+                button.className = 'toggle-btn toggle-off';
+                button.innerHTML = '<i class="fas fa-video-slash"></i> 摄像头禁用';
+                logStatus('摄像头功能已永久禁用');
             } catch (error) {
-                console.error('Camera display toggle error:', error);
-                logStatus('摄像头显示切换失败: ' + error.message);
+                console.error('Camera toggle error:', error);
+                logStatus('摄像头切换失败: ' + error.message);
             }
         }
         

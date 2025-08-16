@@ -278,7 +278,8 @@ class EnhancedVoiceController(VoiceController):
             self.display_controller.show_emotion("happy", 30.0)
         
         # 播放启动提示音并提供即时音频确认
-        self.speak_text("你好！我是快快，说'快快'来唤醒我吧~")
+        # 已禁用唤醒功能，不播放唤醒提示
+        logger.info("语音系统已启动，但唤醒功能已禁用")
         
         return True
     

@@ -52,6 +52,11 @@ except Exception as e:
         def t_up_right(self, *args): print(f"🎭 模拟：右前")
         def t_down_left(self, *args): print(f"🎭 模拟：左后")
         def t_down_right(self, *args): print(f"🎭 模拟：右后")
+        def turnLeft(self, *args): print(f"🎭 模拟：左转")
+        def turnRight(self, *args): print(f"🎭 模拟：右转")
+        def setSpeed(self, *args): print(f"🎭 模拟：设置速度")
+        def moveForward(self, *args): print(f"🎭 模拟：前进")
+        def moveBackward(self, *args): print(f"🎭 模拟：后退")
     
     clbrobot = MockRobot()
 
