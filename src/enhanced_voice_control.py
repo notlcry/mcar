@@ -19,6 +19,9 @@ import struct
 from voice_control import VoiceController
 from ai_conversation import AIConversationManager
 from wake_word_detector import WakeWordDetector, SimpleWakeWordDetector
+# 导入修复版唤醒词检测器
+from simple_wake_word_test import test_simple_wake_word
+import simple_wake_word_test
 from whisper_integration import get_whisper_recognizer
 from vosk_recognizer import VoskRecognizer
 import asyncio
