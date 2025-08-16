@@ -1666,8 +1666,8 @@ if __name__ == '__main__':
         sensor_thread.daemon = True
         sensor_thread.start()
         
-        # 初始化ReSpeaker按钮
-        init_respeaker_button()
+        # 暂时禁用ReSpeaker按钮，专注修复基本功能
+        # init_respeaker_button()
         
         # 摄像头已损坏，跳过初始化
         print("ℹ️ 摄像头已禁用（设备损坏）")
