@@ -1,0 +1,72 @@
+"""__MODULE_CLASS__ module — __MODULE_DESCRIPTION__
+
+Capabilities:
+  - tool.__MODULE_ID__.example — example capability
+"""
+
+from __future__ import annotations
+
+import time
+from pathlib import Path
+from typing import Any
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from common.module_base import ModuleBase
+from common.capability_spec import load_capabilities
+
+
+class __MODULE_CLASS__Module(ModuleBase):
+    """__MODULE_DESCRIPTION__"""
+
+    def __init__(
+        self,
+        router_endpoint: str = "ipc:///tmp/mcar-router.sock",
+        pub_endpoint: str = "ipc:///tmp/mcar-pub.sock",
+    ) -> None:
+        self._start_time = time.monotonic()
+        super().__init__(router_endpoint=router_endpoint, pub_endpoint=pub_endpoint)
+
+    def manifest(self) -> dict[str, Any]:
+        return {
+            "module_id": "__MODULE_ID__",
+            "module_version": "1.0.0",
+            "description": "__MODULE_DESCRIPTION__",
+            "capabilities": [
+                "tool.__MODULE_ID__.example",
+            ],
+            "permissions_required": [],
+        }
+
+    def capabilities(self) -> list[dict[str, Any]]:
+        caps_file = Path(__file__).parent / "capabilities.json"
+        return load_capabilities(caps_file)
+
+    async def invoke(
+        self, capability_id: str, params: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, Any]:
+        if capability_id == "tool.__MODULE_ID__.example":
+            return await self._example(params)
+
+        raise ValueError(f"Unknown capability: {capability_id}")
+
+    async def health(self) -> dict[str, Any]:
+        uptime = time.monotonic() - self._start_time
+        return {"status": "ok", "uptime_s": int(uptime)}
+
+    async def _example(self, params: dict[str, Any]) -> dict[str, Any]:
+        # TODO: implement capability logic
+        return {"ok": True}
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="__MODULE_CLASS__ module for mcar")
+    parser.add_argument("--router", default="ipc:///tmp/mcar-router.sock")
+    parser.add_argument("--pub", default="ipc:///tmp/mcar-pub.sock")
+    args = parser.parse_args()
+
+    module = __MODULE_CLASS__Module(router_endpoint=args.router, pub_endpoint=args.pub)
+    module.run_forever()

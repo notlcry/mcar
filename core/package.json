@@ -1,0 +1,36 @@
+{
+  "name": "mcar-core",
+  "version": "0.1.0",
+  "description": "mcar Agent robot system - TypeScript core",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@mariozechner/pi-agent-core": "0.52.10",
+    "@mariozechner/pi-ai": "0.52.10",
+    "@sinclair/typebox": "^0.34.0",
+    "ajv": "^8.17.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.0",
+    "express": "^5.2.1",
+    "uuid": "^11.0.0",
+    "ws": "^8.19.0",
+    "zeromq": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

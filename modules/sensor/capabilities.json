@@ -1,0 +1,85 @@
+[
+  {
+    "capability_id": "tool.sensor.ultrasonic",
+    "name": "Ultrasonic Distance",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Read distance from the ultrasonic sensor (HC-SR04) in centimeters.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "distance_cm": { "type": "number" }
+      },
+      "required": ["ok", "distance_cm"]
+    },
+    "constraints": {
+      "timeout_ms": 2000,
+      "rate_limit": { "qps": 10, "burst": 15 }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "NONE",
+      "key_fields": [],
+      "ttl_ms": 0
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.sensor.infrared",
+    "name": "Infrared Obstacle",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Read infrared obstacle sensors. Returns left/right obstacle detection status.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "left_obstacle": { "type": "boolean" },
+        "right_obstacle": { "type": "boolean" }
+      },
+      "required": ["ok", "left_obstacle", "right_obstacle"]
+    },
+    "constraints": {
+      "timeout_ms": 1000,
+      "rate_limit": { "qps": 20, "burst": 30 }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "NONE",
+      "key_fields": [],
+      "ttl_ms": 0
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  }
+]

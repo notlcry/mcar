@@ -1,0 +1,185 @@
+[
+  {
+    "capability_id": "tool.voice.recognize",
+    "name": "Voice Recognize",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Recognize speech from microphone using cloud ASR (Google STT). Returns transcribed text.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "language": { "type": "string", "default": "zh-CN", "description": "Language code for recognition" },
+        "timeout_s": { "type": "integer", "minimum": 1, "maximum": 30, "default": 10, "description": "Listen timeout in seconds" }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "text": { "type": "string" },
+        "confidence": { "type": "number" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 35000,
+      "retry_policy": {
+        "retriable_errors": ["E_TIMEOUT", "E_DEPENDENCY_NETWORK"],
+        "max_retries": 2,
+        "backoff_ms": 500
+      }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "NONE",
+      "key_fields": [],
+      "ttl_ms": 0
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.voice.synthesize",
+    "name": "Voice Synthesize",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Synthesize and play text-to-speech audio using Edge TTS. Supports Chinese (zh-CN-XiaoxiaoNeural).",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 500, "description": "Text to speak" },
+        "voice": { "type": "string", "default": "zh-CN-XiaoxiaoNeural", "description": "TTS voice name" },
+        "rate": { "type": "string", "default": "+0%", "description": "Speech rate adjustment (e.g. +10%, -20%)" }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 15000,
+      "rate_limit": { "qps": 2, "burst": 3 },
+      "retry_policy": {
+        "retriable_errors": ["E_TIMEOUT", "E_DEPENDENCY_NETWORK"],
+        "max_retries": 2,
+        "backoff_ms": 500
+      },
+      "concurrency": {
+        "max_in_flight": 1
+      }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false,
+      "deny_when_muted": true
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": ["text", "voice"],
+      "ttl_ms": 5000
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.voice.listen_start",
+    "name": "Start Wake Word Detection",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Start listening for wake word using Picovoice Porcupine. Emits voice.wake_word_detected event.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "listening": { "type": "boolean" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 5000
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": [],
+      "ttl_ms": 1000
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.voice.listen_stop",
+    "name": "Stop Wake Word Detection",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Stop the wake word detection loop.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 2000
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": [],
+      "ttl_ms": 1000
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  }
+]

@@ -1,0 +1,27 @@
+[Unit]
+Description=mcar Agent Robot System
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/mcar
+EnvironmentFile=/home/pi/mcar/.ai_pet_env
+ExecStart=/usr/bin/node /home/pi/mcar/core/dist/index.js
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Resource limits
+LimitNOFILE=4096
+MemoryMax=512M
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mcar
+
+[Install]
+WantedBy=multi-user.target

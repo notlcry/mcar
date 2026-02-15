@@ -67,4 +67,9 @@ health_check.json
 performance_report.json
 diagnostic_info.txt
 
-src/__pycache__/
+# Node.js
+node_modules/
+core/dist/
+
+# Data directory
+data/

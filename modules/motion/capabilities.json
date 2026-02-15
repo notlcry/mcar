@@ -1,0 +1,227 @@
+[
+  {
+    "capability_id": "tool.motion.forward",
+    "name": "Move Forward",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Move the robot forward at a given speed for a given duration.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "speed": { "type": "integer", "minimum": 0, "maximum": 100, "default": 50 },
+        "duration_ms": { "type": "integer", "minimum": 100, "maximum": 5000, "default": 1000 }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "actual_duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 10000,
+      "max_duration_ms": 5000,
+      "cooldown_ms": 200,
+      "concurrency": { "max_in_flight": 1, "mutex_group": "motion" }
+    },
+    "required_state_predicates": [
+      { "key": "obstacle", "op": "==", "value": false, "on_fail": "DENY" }
+    ],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "DEDUP_ONLY",
+      "key_fields": ["speed", "duration_ms"],
+      "ttl_ms": 2000
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.motion.backward",
+    "name": "Move Backward",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Move the robot backward at a given speed for a given duration.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "speed": { "type": "integer", "minimum": 0, "maximum": 100, "default": 50 },
+        "duration_ms": { "type": "integer", "minimum": 100, "maximum": 5000, "default": 1000 }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "actual_duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 10000,
+      "max_duration_ms": 5000,
+      "cooldown_ms": 200,
+      "concurrency": { "max_in_flight": 1, "mutex_group": "motion" }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "DEDUP_ONLY",
+      "key_fields": ["speed", "duration_ms"],
+      "ttl_ms": 2000
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.motion.turn_left",
+    "name": "Turn Left",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Turn the robot left at a given speed for a given duration.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "speed": { "type": "integer", "minimum": 0, "maximum": 100, "default": 50 },
+        "duration_ms": { "type": "integer", "minimum": 100, "maximum": 3000, "default": 500 }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "actual_duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 8000,
+      "max_duration_ms": 3000,
+      "cooldown_ms": 200,
+      "concurrency": { "max_in_flight": 1, "mutex_group": "motion" }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "DEDUP_ONLY",
+      "key_fields": ["speed", "duration_ms"],
+      "ttl_ms": 2000
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.motion.turn_right",
+    "name": "Turn Right",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Turn the robot right at a given speed for a given duration.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "speed": { "type": "integer", "minimum": 0, "maximum": 100, "default": 50 },
+        "duration_ms": { "type": "integer", "minimum": 100, "maximum": 3000, "default": 500 }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "actual_duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 8000,
+      "max_duration_ms": 3000,
+      "cooldown_ms": 200,
+      "concurrency": { "max_in_flight": 1, "mutex_group": "motion" }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "DEDUP_ONLY",
+      "key_fields": ["speed", "duration_ms"],
+      "ttl_ms": 2000
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.motion.stop",
+    "name": "Stop Motion",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Immediately stop all motors.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 1000
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": [],
+      "ttl_ms": 500
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  }
+]

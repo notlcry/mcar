@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mcar Console</title>
+<style>
+:root { --bg: #1a1a2e; --surface: #16213e; --primary: #0f3460; --accent: #e94560; --text: #eee; --text-dim: #aaa; --green: #4caf50; --yellow: #ffc107; --red: #e94560; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+h1 { text-align: center; padding: 12px 0; color: var(--accent); font-size: 1.5em; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border-radius: 12px; padding: 16px; }
+.card h2 { font-size: 1.1em; color: var(--accent); margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.status-item { background: var(--primary); padding: 8px 12px; border-radius: 8px; }
+.status-item label { font-size: 0.75em; color: var(--text-dim); display: block; }
+.status-item span { font-size: 1em; font-weight: bold; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+.badge-green { background: var(--green); color: #fff; }
+.badge-yellow { background: var(--yellow); color: #000; }
+.badge-red { background: var(--red); color: #fff; }
+#estop-btn { width: 100%; padding: 20px; font-size: 1.5em; font-weight: bold; background: var(--red); color: #fff; border: 4px solid #c0392b; border-radius: 50%; cursor: pointer; margin: 12px auto; display: block; width: 120px; height: 120px; transition: transform 0.1s; }
+#estop-btn:active { transform: scale(0.95); }
+.mode-select { display: flex; gap: 8px; flex-wrap: wrap; }
+.mode-btn { padding: 8px 16px; border: 1px solid #444; border-radius: 8px; background: var(--primary); color: var(--text); cursor: pointer; font-size: 0.9em; }
+.mode-btn.active { background: var(--accent); border-color: var(--accent); }
+.cap-list { max-height: 200px; overflow-y: auto; }
+.cap-item { padding: 6px 0; border-bottom: 1px solid #333; font-size: 0.9em; }
+.cap-item .risk { font-size: 0.75em; padding: 1px 6px; border-radius: 4px; }
+.risk-READ_ONLY { background: var(--green); color: #fff; }
+.risk-NORMAL { background: var(--yellow); color: #000; }
+.risk-DANGEROUS { background: var(--red); color: #fff; }
+.chat-box { display: flex; flex-direction: column; height: 300px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 8px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
+.chat-msg { margin: 4px 0; padding: 6px 10px; border-radius: 8px; max-width: 85%; }
+.chat-msg.user { background: var(--primary); margin-left: auto; text-align: right; }
+.chat-msg.bot { background: #2d3748; }
+.chat-input { display: flex; gap: 8px; }
+.chat-input input { flex: 1; padding: 10px; border: 1px solid #444; border-radius: 8px; background: var(--bg); color: var(--text); font-size: 1em; }
+.chat-input button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+.joystick-area { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 4px; max-width: 200px; margin: 0 auto; }
+.joy-btn { padding: 12px; background: var(--primary); border: 1px solid #444; border-radius: 8px; color: var(--text); cursor: pointer; text-align: center; font-size: 1.2em; }
+.joy-btn:active { background: var(--accent); }
+.speed-control { margin-top: 12px; text-align: center; }
+.speed-control input { width: 80%; }
+.memory-list { max-height: 150px; overflow-y: auto; }
+.memory-item { padding: 4px 0; border-bottom: 1px solid #333; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; }
+.memory-item .del-btn { background: none; border: 1px solid #666; color: #aaa; border-radius: 4px; cursor: pointer; font-size: 0.75em; padding: 1px 6px; }
+.memory-item .del-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.mem-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
+.mem-toolbar input { flex: 1; padding: 4px 8px; border: 1px solid #444; border-radius: 6px; background: var(--bg); color: var(--text); font-size: 0.85em; }
+.mem-toolbar button { padding: 4px 10px; background: var(--primary); border: 1px solid #444; border-radius: 6px; color: var(--text); cursor: pointer; font-size: 0.85em; }
+.module-list { max-height: 150px; overflow-y: auto; }
+.module-item { padding: 4px 0; border-bottom: 1px solid #333; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; }
+.module-toggle { padding: 2px 8px; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
+.module-toggle.enabled { background: var(--green); color: #fff; border-color: var(--green); }
+.module-toggle.disabled { background: #555; color: #aaa; }
+.skill-list { max-height: 150px; overflow-y: auto; }
+.skill-item { padding: 6px 0; border-bottom: 1px solid #333; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; }
+.skill-run-btn { padding: 2px 10px; background: var(--accent); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 0.75em; }
+.audit-log { max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8em; }
+.audit-entry { padding: 2px 0; border-bottom: 1px solid #222; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>mcar Console</h1>
+
+  <div class="grid">
+    <!-- Status -->
+    <div class="card">
+      <h2>Status</h2>
+      <div class="status-grid">
+        <div class="status-item"><label>Session</label><span id="s-session">IDLE</span></div>
+        <div class="status-item"><label>Mode</label><span id="s-mode">normal</span></div>
+        <div class="status-item"><label>API</label><span id="s-api">online</span></div>
+        <div class="status-item"><label>Battery</label><span id="s-battery">100%</span></div>
+        <div class="status-item"><label>Obstacle</label><span id="s-obstacle">No</span></div>
+        <div class="status-item"><label>Safety Lock</label><span id="s-lock">Off</span></div>
+      </div>
+    </div>
+
+    <!-- Emergency Stop + Mode -->
+    <div class="card" style="text-align:center">
+      <h2>Control</h2>
+      <button id="estop-btn" onclick="triggerStop()">STOP</button>
+      <div class="mode-select" id="mode-select"></div>
+    </div>
+
+    <!-- Chat -->
+    <div class="card">
+      <h2>Chat</h2>
+      <div class="chat-box">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input">
+          <input id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Joystick -->
+    <div class="card">
+      <h2>Motion Control</h2>
+      <div class="joystick-area">
+        <div></div>
+        <button class="joy-btn" onmousedown="move('forward')" onmouseup="stopMotion()">^</button>
+        <div></div>
+        <button class="joy-btn" onmousedown="move('turn_left')" onmouseup="stopMotion()"><</button>
+        <button class="joy-btn" onclick="stopMotion()" style="background:var(--red)">X</button>
+        <button class="joy-btn" onmousedown="move('turn_right')" onmouseup="stopMotion()">></button>
+        <div></div>
+        <button class="joy-btn" onmousedown="move('backward')" onmouseup="stopMotion()">v</button>
+        <div></div>
+      </div>
+      <div class="speed-control">
+        <label>Speed: <span id="speed-val">30</span></label><br>
+        <input type="range" min="10" max="100" value="30" id="speed-slider" oninput="document.getElementById('speed-val').textContent=this.value">
+      </div>
+    </div>
+
+    <!-- Capabilities -->
+    <div class="card">
+      <h2>Capabilities</h2>
+      <div class="cap-list" id="cap-list"></div>
+    </div>
+
+    <!-- Memory -->
+    <div class="card">
+      <h2>Memories</h2>
+      <div class="mem-toolbar">
+        <input id="mem-search" placeholder="Search..." onkeydown="if(event.key==='Enter')searchMemories()">
+        <button onclick="searchMemories()">Search</button>
+        <button onclick="exportMemories()">Export</button>
+      </div>
+      <div class="memory-list" id="memory-list"><em>Loading...</em></div>
+    </div>
+
+    <!-- Modules -->
+    <div class="card">
+      <h2>Modules</h2>
+      <div class="module-list" id="module-list"><em>Loading...</em></div>
+    </div>
+
+    <!-- Skills -->
+    <div class="card">
+      <h2>Skills</h2>
+      <div class="skill-list" id="skill-list"><em>Loading...</em></div>
+    </div>
+
+    <!-- Audit -->
+    <div class="card" style="grid-column: 1 / -1">
+      <h2>Audit Log</h2>
+      <div class="audit-log" id="audit-log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let ws = null;
+
+// --- Fetch helpers ---
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+// --- Status ---
+async function refreshStatus() {
+  try {
+    const s = await api('GET', '/api/status');
+    document.getElementById('s-session').textContent = s.session;
+    document.getElementById('s-mode').textContent = s.mode;
+    document.getElementById('s-api').textContent = s.apiStatus;
+    document.getElementById('s-battery').textContent = Math.round(s.batteryLevel * 100) + '%';
+    document.getElementById('s-obstacle').textContent = s.obstacle ? 'Yes' : 'No';
+    document.getElementById('s-lock').textContent = s.safetyLock ? 'LOCKED' : 'Off';
+    updateModeButtons(s.mode);
+  } catch (e) { console.error('Status error:', e); }
+}
+
+// --- Mode ---
+const MODES = ['normal', 'safety', 'kid', 'debug', 'mute'];
+function initModes() {
+  const el = document.getElementById('mode-select');
+  el.innerHTML = '';
+  MODES.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'mode-btn';
+    btn.textContent = m;
+    btn.dataset.mode = m;
+    btn.onclick = () => setMode(m);
+    el.appendChild(btn);
+  });
+}
+function updateModeButtons(current) {
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === current);
+  });
+}
+async function setMode(mode) {
+  await api('POST', '/api/mode', { mode });
+  refreshStatus();
+}
+
+// --- Emergency Stop ---
+async function triggerStop() {
+  await api('POST', '/api/stop');
+  refreshStatus();
+}
+
+// --- Chat ---
+function addChatMsg(text, isUser) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (isUser ? 'user' : 'bot');
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addChatMsg(text, true);
+  try {
+    const r = await api('POST', '/api/chat', { text });
+    addChatMsg(r.response || r.error || '(no response)', false);
+  } catch (e) { addChatMsg('Error: ' + e.message, false); }
+  refreshStatus();
+}
+
+// --- Motion ---
+async function move(dir) {
+  const speed = parseInt(document.getElementById('speed-slider').value);
+  await api('POST', '/api/invoke', { capability_id: 'tool.motion.' + dir, params: { speed, duration_ms: 2000 } });
+}
+async function stopMotion() {
+  await api('POST', '/api/invoke', { capability_id: 'tool.motion.stop', params: {} });
+}
+
+// --- Capabilities ---
+async function loadCapabilities() {
+  try {
+    const caps = await api('GET', '/api/capabilities');
+    const el = document.getElementById('cap-list');
+    el.innerHTML = '';
+    caps.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'cap-item';
+      div.innerHTML = '<strong>' + c.name + '</strong> <span class="risk risk-' + c.risk_level + '">' + c.risk_level + '</span><br><small>' + c.description + '</small>';
+      el.appendChild(div);
+    });
+  } catch (e) { console.error('Caps error:', e); }
+}
+
+// --- Memories ---
+async function loadMemories() {
+  try {
+    const mems = await api('GET', '/api/memories');
+    renderMemories(mems);
+  } catch (e) { console.error('Memory error:', e); }
+}
+function renderMemories(mems) {
+  const el = document.getElementById('memory-list');
+  if (mems.length === 0) { el.innerHTML = '<em>No memories</em>'; return; }
+  el.innerHTML = '';
+  mems.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'memory-item';
+    const span = document.createElement('span');
+    span.textContent = '[' + m.type + '] ' + m.summary;
+    const btn = document.createElement('button');
+    btn.className = 'del-btn';
+    btn.textContent = 'X';
+    btn.onclick = () => deleteMemory(m.id);
+    div.appendChild(span);
+    div.appendChild(btn);
+    el.appendChild(div);
+  });
+}
+async function deleteMemory(id) {
+  await api('DELETE', '/api/memories/' + id);
+  loadMemories();
+}
+async function searchMemories() {
+  const q = document.getElementById('mem-search').value.trim();
+  if (!q) { loadMemories(); return; }
+  try {
+    const mems = await api('GET', '/api/memories/search?q=' + encodeURIComponent(q));
+    renderMemories(mems);
+  } catch (e) { console.error('Search error:', e); }
+}
+async function exportMemories() {
+  try {
+    const data = await api('GET', '/api/memories/export');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'mcar-memories.json'; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { console.error('Export error:', e); }
+}
+
+// --- Modules ---
+async function loadModules() {
+  try {
+    const mods = await api('GET', '/api/modules');
+    const el = document.getElementById('module-list');
+    if (mods.length === 0) { el.innerHTML = '<em>No modules</em>'; return; }
+    el.innerHTML = '';
+    mods.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'module-item';
+      const span = document.createElement('span');
+      span.textContent = m.module_id + ' v' + m.version;
+      const btn = document.createElement('button');
+      btn.className = 'module-toggle ' + (m.enabled ? 'enabled' : 'disabled');
+      btn.textContent = m.enabled ? 'ON' : 'OFF';
+      btn.onclick = () => toggleModule(m.module_id, !m.enabled);
+      div.appendChild(span);
+      div.appendChild(btn);
+      el.appendChild(div);
+    });
+  } catch (e) { console.error('Modules error:', e); }
+}
+async function toggleModule(id, enable) {
+  await api('POST', '/api/modules/' + id + '/' + (enable ? 'enable' : 'disable'));
+  loadModules();
+  loadCapabilities();
+}
+
+// --- Skills ---
+async function loadSkills() {
+  try {
+    const skills = await api('GET', '/api/skills');
+    const el = document.getElementById('skill-list');
+    if (skills.length === 0) { el.innerHTML = '<em>No skills</em>'; return; }
+    el.innerHTML = '';
+    skills.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'skill-item';
+      const span = document.createElement('span');
+      span.innerHTML = '<strong>' + s.name + '</strong> <span class="risk risk-' + s.risk_level + '">' + s.risk_level + '</span>';
+      const btn = document.createElement('button');
+      btn.className = 'skill-run-btn';
+      btn.textContent = 'Run';
+      btn.onclick = () => runSkill(s.skill_id);
+      div.appendChild(span);
+      div.appendChild(btn);
+      el.appendChild(div);
+    });
+  } catch (e) { console.error('Skills error:', e); }
+}
+async function runSkill(id) {
+  try {
+    const r = await api('POST', '/api/skills/' + id + '/execute', { params: {} });
+    addChatMsg('Skill result: ' + (r.success ? 'OK' : 'Failed: ' + r.error), false);
+  } catch (e) { addChatMsg('Skill error: ' + e.message, false); }
+}
+
+// --- Audit ---
+function addAuditEntry(entry) {
+  const el = document.getElementById('audit-log');
+  const div = document.createElement('div');
+  div.className = 'audit-entry';
+  const ts = new Date(entry.timestamp || Date.now()).toLocaleTimeString();
+  div.textContent = ts + ' [' + (entry.event || entry.type || '') + '] ' + JSON.stringify(entry.data || {}).slice(0, 100);
+  el.prepend(div);
+  while (el.children.length > 100) el.removeChild(el.lastChild);
+}
+
+// --- WebSocket ---
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host + '/ws');
+  ws.onmessage = function(e) {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state_change') refreshStatus();
+      if (msg.type === 'fsm_transition') addAuditEntry({ event: 'fsm', data: msg.data });
+      if (msg.type === 'audit') addAuditEntry(msg.data);
+      if (msg.type === 'chat') addChatMsg(msg.data.response || msg.data.error, false);
+    } catch (err) {}
+  };
+  ws.onclose = function() { setTimeout(connectWs, 3000); };
+  ws.onerror = function() { ws.close(); };
+}
+
+// --- Init ---
+initModes();
+refreshStatus();
+loadCapabilities();
+loadMemories();
+loadModules();
+loadSkills();
+connectWs();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>

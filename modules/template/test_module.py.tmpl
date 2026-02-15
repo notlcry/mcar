@@ -1,0 +1,44 @@
+"""Tests for the __MODULE_CLASS__ module."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from __MODULE_ID__.module import __MODULE_CLASS__Module
+
+
+@pytest.fixture
+def module() -> __MODULE_CLASS__Module:
+    """Create a __MODULE_CLASS__Module without starting IPC."""
+    m = __MODULE_CLASS__Module.__new__(__MODULE_CLASS__Module)
+    m._start_time = __import__("time").monotonic()
+    return m
+
+
+class TestManifest:
+    def test_manifest_id(self, module: __MODULE_CLASS__Module) -> None:
+        manifest = module.manifest()
+        assert manifest["module_id"] == "__MODULE_ID__"
+
+    def test_capabilities_list(self, module: __MODULE_CLASS__Module) -> None:
+        caps = module.capabilities()
+        assert len(caps) >= 1
+        cap_ids = [c["capability_id"] for c in caps]
+        assert "tool.__MODULE_ID__.example" in cap_ids
+
+
+class TestInvoke:
+    @pytest.mark.asyncio
+    async def test_example(self, module: __MODULE_CLASS__Module) -> None:
+        result = await module.invoke("tool.__MODULE_ID__.example", {}, {})
+        assert result["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_unknown_capability(self, module: __MODULE_CLASS__Module) -> None:
+        with pytest.raises(ValueError, match="Unknown capability"):
+            await module.invoke("tool.__MODULE_ID__.nonexistent", {}, {})

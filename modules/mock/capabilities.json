@@ -1,0 +1,127 @@
+[
+  {
+    "capability_id": "tool.mock.echo",
+    "name": "Echo",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Echo back the input text. For testing IPC round-trip.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 1000 }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "echo": { "type": "string" }
+      },
+      "required": ["ok", "echo"]
+    },
+    "constraints": { "timeout_ms": 3000 },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": ["text"],
+      "ttl_ms": 5000
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.mock.timer",
+    "name": "Timer",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Wait for a specified duration (ms) then return. For testing timeouts and cancellation.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "duration_ms": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      },
+      "required": ["duration_ms"],
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "elapsed_ms": { "type": "integer" }
+      },
+      "required": ["ok", "elapsed_ms"]
+    },
+    "constraints": {
+      "timeout_ms": 15000,
+      "max_duration_ms": 10000
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "NONE",
+      "key_fields": [],
+      "ttl_ms": 0
+    },
+    "observability": {
+      "audit_level": "STANDARD",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
+    "capability_id": "tool.mock.status",
+    "name": "Status",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Return mock system status. For testing read-only capabilities.",
+    "risk_level": "READ_ONLY",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "battery": { "type": "number" },
+        "temperature": { "type": "number" },
+        "uptime_s": { "type": "integer" }
+      },
+      "required": ["ok", "battery", "temperature", "uptime_s"]
+    },
+    "constraints": { "timeout_ms": 2000 },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false
+    },
+    "idempotency": {
+      "mode": "IDEMPOTENT",
+      "key_fields": [],
+      "ttl_ms": 2000
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": false,
+      "log_outputs": true,
+      "redaction": []
+    }
+  }
+]
