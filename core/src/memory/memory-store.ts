@@ -204,7 +204,7 @@ export class MemoryStore {
    */
   searchRelevant(
     queryKeywords: string[],
-    scoreFn: (tags: string[], summary: string) => number,
+    scoreFn: (tags: readonly string[], summary: string) => number,
     options: MemorySearchOptions = {}
   ): MemoryEntry[] {
     // Get candidates with standard filtering

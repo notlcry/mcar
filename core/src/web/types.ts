@@ -25,7 +25,8 @@ export interface CapabilityResponse {
 
 export interface InvokeRequest {
   readonly capability_id: string;
-  readonly params: Record<string, unknown>;
+  readonly params?: Record<string, unknown>;
+  readonly input?: Record<string, unknown>;
 }
 
 export interface InvokeResponse {

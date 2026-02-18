@@ -1,0 +1,1 @@
+{"success":false,"error":{"code":"E_INPUT_SCHEMA","message":"Parameter validation failed: /speed must be <= 100; /duration_ms must be <= 5000","retryable":false}}

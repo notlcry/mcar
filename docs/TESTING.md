@@ -27,7 +27,7 @@ cd core && node dist/index.js
 curl -s http://localhost:8080/api/modules | python3 -m json.tool
 ```
 
-**预期**: 返回 6 个模块，每个模块 `status` 为 `"running"` 或 `"mock"`。
+**预期**: 返回 6 个模块，包含 `module_id`、`capabilities`、`enabled` 等字段。
 
 ### T1.3 系统状态
 
@@ -52,10 +52,10 @@ curl -s http://localhost:8080/api/status | python3 -m json.tool
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "你好，你是谁？"}' | python3 -m json.tool
+  -d '{"text": "你好，你是谁？"}' | python3 -m json.tool
 ```
 
-**预期**: 返回包含 `reply` 字段的 JSON，Agent 有意义的回复。
+**预期**: 返回包含 `response` 字段的 JSON，Agent 有意义的回复。
 
 ### T2.2 能力列表查询
 
@@ -70,7 +70,7 @@ curl -s http://localhost:8080/api/capabilities | python3 -m json.tool
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "测试一下 echo 功能，发送 hello"}' | python3 -m json.tool
+  -d '{"text": "测试一下 echo 功能，发送 hello"}' | python3 -m json.tool
 ```
 
 **预期**: Agent 应调用 `tool.mock.echo`，回复中包含 echo 结果。
@@ -175,7 +175,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
 ```bash
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.voice.recognize", "input": {"duration": 5}}' \
+  -d '{"capability_id": "tool.voice.recognize", "input": {"timeout_s": 5}}' \
   | python3 -m json.tool
 ```
 
@@ -219,7 +219,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
 # 先启动一个运动
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration": 5}}' &
+  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration_ms": 5000}}' &
 
 # 立即急停
 curl -s -X POST http://localhost:8080/api/stop | python3 -m json.tool
@@ -246,7 +246,7 @@ curl -s -X POST http://localhost:8080/api/stop
 # 立即尝试前进（应被拒绝）
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration": 1}}' \
+  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration_ms": 1000}}' \
   | python3 -m json.tool
 ```
 
@@ -254,13 +254,13 @@ curl -s -X POST http://localhost:8080/api/invoke \
 
 ### T5.4 冷却后恢复
 
-等待冷却期（默认 5 秒）后再尝试：
+等待冷却期（默认 2 秒）后再尝试：
 
 ```bash
 sleep 6
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration": 1}}' \
+  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration_ms": 1000}}' \
   | python3 -m json.tool
 ```
 
@@ -310,7 +310,7 @@ curl -s -X POST http://localhost:8080/api/mode \
 # 尝试高速运动
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 100, "duration": 1}}' \
+  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 100, "duration_ms": 1000}}' \
   | python3 -m json.tool
 ```
 
@@ -323,7 +323,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "全速前进5秒"}' | python3 -m json.tool
+  -d '{"text": "全速前进5秒"}' | python3 -m json.tool
 ```
 
 **预期**: 如果操作被判定为危险级别，系统进入 CONFIRMING 状态，等待确认。
@@ -343,7 +343,7 @@ curl -s -X POST http://localhost:8080/api/chat \
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "请记住我喜欢蓝色"}' | python3 -m json.tool
+  -d '{"text": "请记住我喜欢蓝色"}' | python3 -m json.tool
 ```
 
 **预期**: Agent 提议记忆写入，确认后写入成功。
@@ -419,25 +419,25 @@ curl -s -X POST http://localhost:8080/api/memories/clear \
 # 前进
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration": 2}}' \
+  -d '{"capability_id": "tool.motion.forward", "input": {"speed": 30, "duration_ms": 2000}}' \
   | python3 -m json.tool
 
 # 后退
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.backward", "input": {"speed": 30, "duration": 2}}' \
+  -d '{"capability_id": "tool.motion.backward", "input": {"speed": 30, "duration_ms": 2000}}' \
   | python3 -m json.tool
 
 # 左转
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.turn_left", "input": {"speed": 30, "duration": 1}}' \
+  -d '{"capability_id": "tool.motion.turn_left", "input": {"speed": 30, "duration_ms": 1000}}' \
   | python3 -m json.tool
 
 # 右转
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
-  -d '{"capability_id": "tool.motion.turn_right", "input": {"speed": 30, "duration": 1}}' \
+  -d '{"capability_id": "tool.motion.turn_right", "input": {"speed": 30, "duration_ms": 1000}}' \
   | python3 -m json.tool
 
 # 停止
@@ -463,7 +463,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
   | python3 -m json.tool
 ```
 
-**预期**: 超声波返回 `distance_cm`，红外返回 `left`/`right` 障碍物状态。
+**预期**: 超声波返回 `distance_cm`，红外返回 `left_obstacle`/`right_obstacle` 障碍物状态。
 
 ### T8.3 显示模块
 
@@ -511,7 +511,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
 | T8.1d 右转 | 右转 | [ ] | |
 | T8.1e 停止 | 电机停止 | [ ] | |
 | T8.2a 超声波 | 返回距离 cm | [ ] | |
-| T8.2b 红外 | 返回 left/right | [ ] | |
+| T8.2b 红外 | 返回 left_obstacle/right_obstacle | [ ] | |
 | T8.3a 表情 | OLED 显示表情 | [ ] | |
 | T8.3b 文字 | OLED 显示文字 | [ ] | |
 | T8.3c 清屏 | OLED 清空 | [ ] | |

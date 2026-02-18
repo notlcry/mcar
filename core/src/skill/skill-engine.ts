@@ -216,7 +216,8 @@ export class SkillEngine {
   ): boolean {
     if (condition.type === "state") {
       const snapshot = this.stateService.getSnapshot();
-      const actual = (snapshot as Record<string, unknown>)[condition.key];
+      const snapshotRecord = snapshot as unknown as Record<string, unknown>;
+      const actual = snapshotRecord[condition.key];
       return this.compareValues(actual, condition.op, condition.value);
     }
 

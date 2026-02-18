@@ -7,8 +7,11 @@ Capabilities:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from common.module_base import ModuleBase
 from common.capability_spec import load_capabilities

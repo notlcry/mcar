@@ -25,12 +25,17 @@ const DEFAULT_CONFIG: SummarizerConfig = {
   keepRecentMessages: 10,
 };
 
+type MessageLike = {
+  role?: unknown;
+  content?: unknown;
+};
+
 /**
  * Extract text content from an AgentMessage regardless of its structure.
  */
 function extractText(msg: AgentMessage): string {
   if (!msg || typeof msg !== "object") return "";
-  const m = msg as Record<string, unknown>;
+  const m = msg as unknown as MessageLike;
 
   // UserMessage: content is string | (TextContent | ImageContent)[]
   if (typeof m.content === "string") return m.content;
@@ -97,7 +102,7 @@ export class SessionSummarizer {
   private async llmSummarize(messages: AgentMessage[]): Promise<string> {
     const conversationText = messages
       .map((m) => {
-        const role = (m as Record<string, unknown>).role ?? "unknown";
+        const role = (m as unknown as MessageLike).role ?? "unknown";
         const text = extractText(m);
         return text ? `[${role}] ${text}` : "";
       })
@@ -142,7 +147,7 @@ export class SessionSummarizer {
     const keywords = extractKeywords(allText);
     const topKeywords = keywords.slice(0, 8);
     const turnCount = messages.filter(
-      (m) => (m as Record<string, unknown>).role === "user"
+      (m) => (m as unknown as MessageLike).role === "user"
     ).length;
 
     if (topKeywords.length === 0) {

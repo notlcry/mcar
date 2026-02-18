@@ -152,7 +152,8 @@ export class WebServer {
         return;
       }
       try {
-        const result = await this.executor.execute(body.capability_id, body.params ?? {});
+        const params = body.params ?? body.input ?? {};
+        const result = await this.executor.execute(body.capability_id, params);
         res.json(result);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -217,7 +218,11 @@ export class WebServer {
 
     // DELETE /api/memories/:id
     this.app.delete("/api/memories/:id", (req: Request, res: Response) => {
-      const id = req.params.id;
+      const id = this.getPathParam(req, "id");
+      if (!id) {
+        res.status(400).json({ error: "id required" });
+        return;
+      }
       const entry = this.memoryService.getById(id);
       if (!entry) {
         res.status(404).json({ error: "Memory not found" });
@@ -259,7 +264,11 @@ export class WebServer {
         return;
       }
       const result = importMemories(this.memoryService, data);
-      this.auditLogger.info("web", "memory.import", result);
+      this.auditLogger.info("web", "memory.import", {
+        imported: result.imported,
+        skipped: result.skipped,
+        errors: result.errors,
+      });
       res.json(result);
     });
 
@@ -279,7 +288,11 @@ export class WebServer {
 
     // POST /api/modules/:id/enable
     this.app.post("/api/modules/:id/enable", (req: Request, res: Response) => {
-      const moduleId = req.params.id;
+      const moduleId = this.getPathParam(req, "id");
+      if (!moduleId) {
+        res.status(400).json({ error: "id required" });
+        return;
+      }
       this.registry.setModuleEnabled(moduleId, true);
       this.auditLogger.info("web", "module.enable", { moduleId });
       res.json({ ok: true, moduleId, enabled: true });
@@ -287,7 +300,11 @@ export class WebServer {
 
     // POST /api/modules/:id/disable
     this.app.post("/api/modules/:id/disable", (req: Request, res: Response) => {
-      const moduleId = req.params.id;
+      const moduleId = this.getPathParam(req, "id");
+      if (!moduleId) {
+        res.status(400).json({ error: "id required" });
+        return;
+      }
       this.registry.setModuleEnabled(moduleId, false);
       this.auditLogger.info("web", "module.disable", { moduleId });
       res.json({ ok: true, moduleId, enabled: false });
@@ -318,8 +335,12 @@ export class WebServer {
         res.status(404).json({ error: "Skill engine not available" });
         return;
       }
-      const skillId = req.params.id;
-      const params = req.body?.params ?? {};
+      const skillId = this.getPathParam(req, "id");
+      if (!skillId) {
+        res.status(400).json({ error: "id required" });
+        return;
+      }
+      const params = req.body?.params ?? req.body?.input ?? {};
       try {
         const result = await this.skillEngine.execute(skillId, params);
         res.json(result);
@@ -369,7 +390,12 @@ export class WebServer {
         res.status(404).json({ error: "Session recorder not available" });
         return;
       }
-      const replay = this.sessionRecorder.getReplay(req.params.id);
+      const sessionId = this.getPathParam(req, "id");
+      if (!sessionId) {
+        res.status(400).json({ error: "id required" });
+        return;
+      }
+      const replay = this.sessionRecorder.getReplay(sessionId);
       if (!replay) {
         res.status(404).json({ error: "Session not found" });
         return;
@@ -429,6 +455,17 @@ export class WebServer {
         res.status(200).send("mcar Web Console - public/index.html not found");
       }
     });
+  }
+
+  private getPathParam(req: Request, name: string): string | null {
+    const value = req.params[name];
+    if (typeof value === "string") {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value[0] ?? null;
+    }
+    return null;
   }
 
   private setupWebSocket(): void {

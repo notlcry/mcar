@@ -16,6 +16,7 @@ export type MemoryType =
 export type MemorySource =
   | "user_explicit"
   | "user_implicit"
+  | "agent_proposed"
   | "system_detected"
   | "imported";
 

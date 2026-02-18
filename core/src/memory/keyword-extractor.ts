@@ -77,8 +77,8 @@ export function extractKeywords(text: string): string[] {
  * Compute relevance score between a set of query keywords and an entry's tags + summary.
  */
 export function computeRelevanceScore(
-  queryKeywords: string[],
-  tags: string[],
+  queryKeywords: readonly string[],
+  tags: readonly string[],
   summary: string
 ): number {
   if (queryKeywords.length === 0) return 0;

@@ -14,6 +14,7 @@ Optional overrides:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import signal
@@ -151,7 +152,11 @@ class ModuleBase(ABC):
                 }
 
             if msg_type == "health":
-                data = await self.health()
+                health_result = self.health()
+                if inspect.isawaitable(health_result):
+                    data = await health_result
+                else:
+                    data = health_result
                 return {"type": "result", "id": request_id, "success": True, "data": data}
 
             if msg_type == "invoke":

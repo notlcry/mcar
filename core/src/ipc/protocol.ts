@@ -109,7 +109,7 @@ export interface HeartbeatPong {
 
 export interface StopBroadcast {
   readonly type: "stop";
-  readonly source: "voice" | "web" | "system";
+  readonly source: "voice" | "web" | "system" | "button";
   readonly timestamp: number;
 }
 

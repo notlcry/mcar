@@ -183,14 +183,6 @@ async function main(): Promise<void> {
   }
   console.log("");
 
-  // ─── CLI text interaction loop ──────────────────────────
-
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: "mcar> ",
-  });
-
   // Start voice loop, health monitor, and cleanup scheduler
   voiceLoop.start();
   healthMonitor.start();
@@ -222,6 +214,46 @@ async function main(): Promise<void> {
     performanceTracker
   );
   await webServer.start();
+
+  let shuttingDown = false;
+  const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log("\n[mcar] Shutting down...");
+
+    // Shut down module processes
+    await watchdog.shutdown();
+
+    // Clean up
+    ruleEngine.stop();
+    cleanupScheduler.stop();
+    healthMonitor.stop();
+    voiceLoop.stop();
+    await webServer.stop();
+    memoryService.close();
+    auditStore.close();
+    await bridge.stop();
+
+    console.log("[mcar] Goodbye!");
+    process.exit(0);
+  };
+
+  const onSignal = () => { void shutdown(); };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log("[mcar] Ready! Non-interactive mode (CLI disabled).");
+    return;
+  }
+
+  // ─── CLI text interaction loop ──────────────────────────
+
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "mcar> ",
+  });
 
   console.log("[mcar] Ready! Type your message or 'quit' to exit.");
   rl.prompt();
@@ -276,24 +308,8 @@ async function main(): Promise<void> {
     rl.prompt();
   });
 
-  rl.on("close", async () => {
-    console.log("\n[mcar] Shutting down...");
-
-    // Shut down module processes
-    await watchdog.shutdown();
-
-    // Clean up
-    ruleEngine.stop();
-    cleanupScheduler.stop();
-    healthMonitor.stop();
-    voiceLoop.stop();
-    await webServer.stop();
-    memoryService.close();
-    auditStore.close();
-    await bridge.stop();
-
-    console.log("[mcar] Goodbye!");
-    process.exit(0);
+  rl.on("close", () => {
+    void shutdown();
   });
 }
 
