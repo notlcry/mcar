@@ -138,6 +138,29 @@ mcar 是一个运行在树莓派上的 Agent 交互机器人系统，采用 Robo
 | **Session Summarizer** | `core/src/agent/session-summarizer.ts` | 长对话压缩：LLM 摘要优先 + 本地关键词兜底，保留最近 N 轮 |
 | **E2E Flow Tests** | `core/tests/integration/e2e-flow.test.ts` | 端到端集成测试：文本流、急停、确认流、记忆提议、模式策略 |
 
+## M9 Components (Multi-turn Voice + Whisper ASR + DashScope LLM)
+
+| 组件 | 位置 | 说明 |
+|------|------|------|
+| **Multi-turn Voice Session** | `core/src/orchestrator/voice-loop.ts` | 唤醒词后进入连续对话循环（ASR→Agent→TTS→ASR...），ASR 超时自动退出回到唤醒词等待 |
+| **FSM RESPONDING→LISTENING** | `core/src/orchestrator/session-controller.ts` | 新增 RESPONDING→LISTENING 合法转换，支持多轮对话不回 IDLE |
+| **Whisper ASR** | `modules/voice/driver.py` | 局域网 Whisper HTTP ASR 替代 Google STT，绕过代理，支持中文 |
+| **Whisper Hallucination Filter** | `modules/voice/driver.py` | 三层过滤：RMS 能量检测（<300=静音）、短音频过滤（<0.5s）、已知幻觉短语检测 |
+| **DashScope/Qwen LLM** | `core/src/agent/agent-runtime.ts` | 阿里云百炼 DashScope OpenAI 兼容 API，resolveModel() 自动构建自定义 Provider |
+| **Voice Output Cleaning** | `core/src/orchestrator/action-dispatcher.ts` | cleanResponseForVoice()：剥离 `<think>` 思考块、emoji、markdown，截断至 200 字 |
+| **TTS Volume Boost** | `modules/voice/driver.py` | ffmpeg +8dB 音量增益，解决树莓派扬声器音量不足 |
+| **systemd Service** | `deploy/mcar.service` | 完整 systemd 配置：venv PATH、EnvironmentFile、KillMode=control-group 确保子进程清理 |
+| **System Prompt 优化** | `core/src/agent/prompt-builder.ts` | Voice Output Rules：简短回复（≤50字）、口语化中文、禁止 emoji/思考过程 |
+
+### Next Phase: soul.md
+
+下一阶段任务：编写 `soul.md`，定义机器人的人格与行为准则：
+- **Identity**: 身份定义（名字、角色、定位）
+- **Mission**: 使命与目标
+- **Values**: 核心价值观
+- **Voice & Style**: 语言风格、语气、表达方式
+- **Memory**: 记忆策略与人格一致性
+
 ### Web API Endpoints
 
 **核心端点：**
@@ -210,8 +233,14 @@ journalctl -u mcar -f
 ```bash
 # 复制环境变量模板并填入 API keys
 cp .ai_pet_env.example .ai_pet_env
-# 必需: GEMINI_API_KEY
-# 可选: PICOVOICE_ACCESS_KEY, WEB_PORT, WEB_HOST
+# LLM 配置（二选一）:
+#   GEMINI_API_KEY — Google Gemini
+#   DASHSCOPE_API_KEY + LLM_PROVIDER=dashscope + LLM_MODEL=qwen-plus — 阿里云百炼
+# 语音: PICOVOICE_ACCESS_KEY, WHISPER_URL (局域网 Whisper 服务地址)
+# 可选: WEB_PORT, WEB_HOST, LLM_BASE_URL
+
+# systemd 部署需要单独的 env 文件（不含 export 前缀）:
+# .ai_pet_env.systemd — 纯 KEY=value 格式，systemd EnvironmentFile 不支持 export
 ```
 
 ## Development Notes
@@ -236,3 +265,10 @@ cp .ai_pet_env.example .ai_pet_env
 - Button 模块通过 GPIO 中断检测按钮（BCM17, FALLING edge, 200ms 去抖），按下后发 IPC emergency_stop 事件触发 StopHandler
 - SessionSummarizer 在消息超过阈值（默认 20）时压缩历史：LLM 摘要优先，失败回退本地关键词提取
 - MemoryService.searchRelevant() 基于关键词匹配 tag（权重 3）和 summary（权重 1）进行相关性排序
+- 多轮语音对话：唤醒后进入 ASR→Agent→TTS 循环，期间暂停唤醒词检测，ASR 超时即退出循环恢复唤醒词
+- Whisper ASR 通过 HTTP POST 到局域网服务（WHISPER_URL），使用 `urllib` 绕过系统代理（ProxyHandler({})）
+- Whisper 幻觉过滤：RMS 能量 < 300 判为静音跳过、音频 < 0.5s 跳过、已知幻觉短语（"谢谢观看"等）过滤
+- DashScope/Qwen 通过 OpenAI 兼容 API 接入，resolveModel() 先查 pi-ai 内置注册表，未找到则构建自定义 Model 对象
+- cleanResponseForVoice() 在 ActionDispatcher 中清洗 LLM 回复：去 `<think>` 块、去 emoji/markdown、截断 200 字
+- systemd 部署注意：EnvironmentFile 不支持 `export` 前缀和 shell 变量展开，需用 `.ai_pet_env.systemd` 纯 KEY=value 格式
+- systemd KillMode=control-group 确保 stop 时杀掉所有子进程（Python 模块进程）

@@ -4,15 +4,20 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=/home/pi/mcar
-EnvironmentFile=/home/pi/mcar/.ai_pet_env
-ExecStart=/usr/bin/node /home/pi/mcar/core/dist/index.js
+WorkingDirectory=/root/mcar/core
+EnvironmentFile=/root/mcar/.ai_pet_env.systemd
+Environment=PATH=/root/mcar/.venv/bin:/root/.nvm/versions/node/v24.13.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=VIRTUAL_ENV=/root/mcar/.venv
+ExecStart=/root/.nvm/versions/node/v24.13.1/bin/node dist/index.js
 Restart=on-failure
 RestartSec=5
 StartLimitIntervalSec=60
 StartLimitBurst=5
+
+# Ensure all child processes (Python modules) are killed on stop
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=10
 
 # Resource limits
 LimitNOFILE=4096

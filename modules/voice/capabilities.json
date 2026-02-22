@@ -74,11 +74,11 @@
       "required": ["ok"]
     },
     "constraints": {
-      "timeout_ms": 15000,
+      "timeout_ms": 30000,
       "rate_limit": { "qps": 2, "burst": 3 },
       "retry_policy": {
         "retriable_errors": ["E_TIMEOUT", "E_DEPENDENCY_NETWORK"],
-        "max_retries": 2,
+        "max_retries": 1,
         "backoff_ms": 500
       },
       "concurrency": {

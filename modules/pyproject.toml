@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mcar-modules"
 version = "0.1.0"
@@ -28,6 +32,14 @@ display = [
     "luma.oled>=3.13.0",
     "Pillow>=10.0.0",
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["common", "mock", "voice", "motion", "sensor", "display", "button"]
+exclude = ["tests", "tests.*", "template", "template.*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -19,6 +19,56 @@ import type { MemoryService } from "../memory/memory-service.js";
 import type { MemoryType } from "../memory/types.js";
 
 const STOP_WORDS = new Set(["stop", "halt", "emergency", "estop", "停", "停止", "急停"]);
+
+/** Max characters for voice output (~15s of Chinese TTS). */
+const MAX_VOICE_CHARS = 200;
+
+/**
+ * Clean LLM response for voice output:
+ * 1. Strip <think>...</think> reasoning blocks (Qwen/DeepSeek thinking)
+ * 2. Remove emoji and special Unicode symbols
+ * 3. Remove markdown formatting
+ * 4. Truncate to MAX_VOICE_CHARS
+ */
+function cleanResponseForVoice(text: string): string {
+  let s = text;
+
+  // Strip thinking blocks: <think>...</think> (may span multiple lines)
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, "");
+
+  // Remove markdown: **bold**, *italic*, `code`, ### headers, - bullets, [links](url)
+  s = s.replace(/#{1,6}\s*/g, "");
+  s = s.replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1");
+  s = s.replace(/`([^`]+)`/g, "$1");
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  s = s.replace(/^[-*]\s+/gm, "");
+
+  // Remove emoji and special symbols (keep CJK, letters, digits, punctuation)
+  s = s.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|[\u{200D}\u{20E3}\u{FE0F}\u{E0020}-\u{E007F}]|[✓✔✗✘☐☑☒⚡⭐⬆⬇⬅➡❤♥♡★☆●○◆◇▶►▼▲△▽◁◀←→↑↓↔↕⇒⇐⇑⇓⇔]/gu, "");
+
+  // Collapse whitespace
+  s = s.replace(/\n{2,}/g, "\n").replace(/[ \t]+/g, " ").trim();
+
+  // Truncate if too long
+  if (s.length > MAX_VOICE_CHARS) {
+    // Cut at last sentence boundary within limit
+    const truncated = s.slice(0, MAX_VOICE_CHARS);
+    const lastPunct = Math.max(
+      truncated.lastIndexOf("。"),
+      truncated.lastIndexOf("！"),
+      truncated.lastIndexOf("？"),
+      truncated.lastIndexOf("；"),
+      truncated.lastIndexOf(". "),
+      truncated.lastIndexOf("! "),
+      truncated.lastIndexOf("? "),
+    );
+    s = lastPunct > MAX_VOICE_CHARS * 0.3
+      ? truncated.slice(0, lastPunct + 1)
+      : truncated + "……";
+  }
+
+  return s;
+}
 const CONFIRM_WORDS = new Set(["是", "确认", "yes", "confirm", "ok", "好"]);
 const REJECT_WORDS = new Set(["否", "取消", "no", "cancel", "算了"]);
 
@@ -97,15 +147,18 @@ export class ActionDispatcher {
 
       finishTimer?.();
 
+      const cleaned = cleanResponseForVoice(responseText);
+
       this.auditLogger.info(traceId, "dispatch.complete", {
         responseLength: responseText.length,
+        cleanedLength: cleaned.length,
       });
 
       // FSM: → RESPONDING → IDLE
       this.session.transition("RESPONDING");
       this.session.transition("IDLE");
 
-      return responseText || "(no response)";
+      return cleaned || "抱歉，我没有理解。";
     } catch (err) {
       finishTimer?.();
       const message = err instanceof Error ? err.message : String(err);

@@ -2,7 +2,7 @@
  * AgentRuntime — wraps pi-agent-core Agent with mcar system integration.
  *
  * Responsibilities:
- * - Creates and configures the Agent with Gemini model
+ * - Creates and configures the Agent with LLM model (Gemini, DashScope/Qwen, OpenAI, etc.)
  * - Manages tool registration (from CapabilityRegistry)
  * - Provides prompt/abort/subscribe interface to Orchestrator
  * - Updates system prompt on each call via PromptBuilder
@@ -21,6 +21,65 @@ import type { IncidentRecorder } from "../observability/incident-recorder.js";
 import { SessionSummarizer, type SummarizerConfig } from "./session-summarizer.js";
 import { buildToolsFromRegistry } from "./tool-adapter.js";
 
+/**
+ * Known OpenAI-compatible providers that are not in the pi-ai built-in registry.
+ * These use the `openai-completions` API with a custom baseUrl.
+ */
+const CUSTOM_PROVIDERS: Record<string, { baseUrl: string; defaultModel: string }> = {
+  dashscope: {
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    defaultModel: "qwen-plus",
+  },
+};
+
+/**
+ * Resolve a Model object from LlmConfig.
+ * - If the provider+model exists in pi-ai built-in registry, use it directly.
+ * - Otherwise, construct a custom Model for OpenAI-compatible endpoints.
+ */
+function resolveModel(config: LlmConfig): Model<any> {
+  // Try built-in registry first
+  const builtin = getModel(config.provider as any, config.model as any);
+  if (builtin) {
+    // Allow baseUrl override even for built-in models
+    if (config.baseUrl) {
+      return { ...builtin, baseUrl: config.baseUrl };
+    }
+    return builtin;
+  }
+
+  // Custom provider — construct an OpenAI-compatible Model
+  const customProvider = CUSTOM_PROVIDERS[config.provider];
+  const baseUrl = config.baseUrl ?? customProvider?.baseUrl;
+  if (!baseUrl) {
+    throw new Error(
+      `Unknown LLM provider "${config.provider}" with model "${config.model}". ` +
+      `Set LLM_BASE_URL for custom OpenAI-compatible endpoints.`
+    );
+  }
+
+  console.log(`[AgentRuntime] Custom model: provider=${config.provider} model=${config.model} baseUrl=${baseUrl}`);
+
+  return {
+    id: config.model,
+    name: config.model,
+    api: "openai-completions",
+    provider: config.provider,
+    baseUrl,
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 131072,
+    maxTokens: 8192,
+    compat: {
+      maxTokensField: "max_tokens",
+      supportsStore: false,
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
+    },
+  } as Model<any>;
+}
+
 export class AgentRuntime {
   private agent: Agent;
   private readonly model: Model<any>;
@@ -37,10 +96,7 @@ export class AgentRuntime {
     private readonly incidentRecorder?: IncidentRecorder,
     summarizerConfig?: Partial<SummarizerConfig>
   ) {
-    this.model = getModel(
-      llmConfig.provider as any,
-      llmConfig.model as any
-    );
+    this.model = resolveModel(llmConfig);
 
     this.summarizer = new SessionSummarizer(
       this.model,

@@ -2,11 +2,11 @@
  * VoiceLoop — manages the voice interaction lifecycle.
  *
  * Listens for bridge events:
- * - voice.wake_word_detected → start recognition → dispatch to agent → TTS response
+ * - voice.wake_word_detected → start multi-turn conversation session
  * - voice.stop_word_detected → trigger emergency stop
  *
- * Coordinates FSM transitions:
- *   IDLE → LISTENING → THINKING → RESPONDING → IDLE
+ * Multi-turn flow after wake word:
+ *   IDLE → LISTENING → THINKING → RESPONDING → LISTENING → ... → (ASR timeout) → IDLE
  */
 
 import type { SessionController } from "./session-controller.js";
@@ -77,12 +77,13 @@ export class VoiceLoop {
   }
 
   /**
-   * Handle wake word detection:
-   * 1. Transition FSM to LISTENING
-   * 2. Invoke ASR (recognize)
-   * 3. Dispatch recognized text to agent
-   * 4. TTS the agent response
-   * 5. Return to IDLE
+   * Handle wake word detection — enters a multi-turn conversation loop.
+   *
+   * Flow:
+   *   1. Stop wake word detection
+   *   2. Loop: ASR → dispatch → TTS → ASR → ...
+   *   3. Exit loop on ASR timeout (no speech) or stop word
+   *   4. Resume wake word detection
    */
   private async handleWakeWord(): Promise<void> {
     if (this.session.current !== "IDLE") {
@@ -94,69 +95,133 @@ export class VoiceLoop {
 
     this.auditLogger.info("voice-loop", "wake_word.detected", {});
 
+    // Stop wake word detection for the duration of the conversation
+    await this.stopListening();
+
     // IDLE → LISTENING
-    if (!this.session.transition("LISTENING")) return;
+    if (!this.session.transition("LISTENING")) {
+      await this.startListening();
+      return;
+    }
+
+    let turnCount = 0;
 
     try {
-      // Show listening expression
-      await this.safeExecute("tool.display.show_expression", {
-        expression: "listening",
-      });
+      // Multi-turn conversation loop
+      while (this.active) {
+        const t0 = Date.now();
 
-      // ASR: recognize speech
-      const asrResult = await this.safeExecute("tool.voice.recognize", {
-        language: "zh-CN",
-        timeout_s: 10,
-      });
-
-      if (!asrResult?.success || !asrResult.data?.text) {
-        this.auditLogger.info("voice-loop", "asr.no_input", {});
-        // Show neutral expression and return to idle
+        // Show listening expression
         await this.safeExecute("tool.display.show_expression", {
-          expression: "neutral",
+          expression: "listening",
         });
-        this.session.transition("IDLE");
-        return;
-      }
 
-      const text = asrResult.data.text as string;
+        // ASR: recognize speech
+        const tAsr = Date.now();
+        const asrResult = await this.safeExecute("tool.voice.recognize", {
+          language: "zh-CN",
+          timeout_s: 10,
+        });
+        const asrMs = Date.now() - tAsr;
 
-      // Check if stop word was detected in ASR
-      if (asrResult.data.is_stop_word) {
-        await this.handleStopWord();
-        return;
-      }
+        if (!asrResult?.success || !asrResult.data?.text) {
+          this.auditLogger.info("voice-loop", "asr.no_input", {
+            asr_ms: asrMs,
+            turn: turnCount,
+          });
+          break; // Silence timeout → exit conversation loop
+        }
 
-      this.auditLogger.info("voice-loop", "asr.recognized", { text });
+        const text = asrResult.data.text as string;
 
-      // Show thinking expression
-      await this.safeExecute("tool.display.show_expression", {
-        expression: "thinking",
-      });
+        // Check if stop word was detected in ASR
+        if (asrResult.data.is_stop_word) {
+          await this.handleStopWord();
+          return; // handleStopWord manages state; skip normal cleanup
+        }
 
-      // LISTENING → THINKING (handled by dispatcher)
-      // Dispatch to agent
-      const response = await this.dispatcher.dispatch(text);
+        turnCount++;
+        this.auditLogger.info("voice-loop", "asr.recognized", {
+          text,
+          asr_ms: asrMs,
+          turn: turnCount,
+        });
 
-      // TTS: speak the response (if not in mute mode)
-      if (this.stateService.getMode() !== "mute") {
+        // Show thinking expression
         await this.safeExecute("tool.display.show_expression", {
-          expression: "speaking",
+          expression: "thinking",
         });
-        await this.safeExecute("tool.voice.synthesize", { text: response });
+
+        // LISTENING → THINKING (handled by dispatcher)
+        // Dispatch to agent + play acknowledgment in parallel
+        const notMute = this.stateService.getMode() !== "mute";
+        const tLlm = Date.now();
+        let llmMs = 0;
+        let ackMs = 0;
+
+        const [response] = await Promise.all([
+          this.dispatcher.dispatch(text).then((r) => {
+            llmMs = Date.now() - tLlm;
+            return r;
+          }),
+          notMute && turnCount === 1
+            ? (() => {
+                const tAck = Date.now();
+                return this.safeExecute("tool.voice.synthesize", { text: "嗯，" }).then((r) => {
+                  ackMs = Date.now() - tAck;
+                  return r;
+                });
+              })()
+            : Promise.resolve(null),
+        ]);
+
+        this.auditLogger.info("voice-loop", "timing.llm_and_ack", {
+          llm_ms: llmMs,
+          ack_ms: ackMs,
+          turn: turnCount,
+        });
+
+        // TTS: speak the response (if not in mute mode)
+        if (notMute) {
+          await this.safeExecute("tool.display.show_expression", {
+            expression: "speaking",
+          });
+          const tTts = Date.now();
+          await this.safeExecute("tool.voice.synthesize", { text: response });
+          const ttsMs = Date.now() - tTts;
+          this.auditLogger.info("voice-loop", "timing.cycle", {
+            asr_ms: asrMs,
+            llm_ms: llmMs,
+            ack_ms: ackMs,
+            tts_ms: ttsMs,
+            total_ms: Date.now() - t0,
+            turn: turnCount,
+          });
+        }
+
+        // RESPONDING → LISTENING for next turn (stay in conversation)
+        if (!this.session.transition("LISTENING")) {
+          break; // FSM rejected transition (e.g. STOPPED state)
+        }
       }
 
-      // Show neutral expression
+      // Show neutral expression before going idle
       await this.safeExecute("tool.display.show_expression", {
         expression: "neutral",
       });
+
+      this.auditLogger.info("voice-loop", "session.end", { turns: turnCount });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.auditLogger.error("voice-loop", "interaction.error", {
         error: message,
+        turn: turnCount,
       });
-      this.session.transition("IDLE");
     }
+
+    // Return to IDLE and resume wake word detection
+    this.session.transition("IDLE");
+    await this.startListening();
   }
 
   /**
@@ -178,7 +243,13 @@ export class VoiceLoop {
   }
 
   private async startListening(): Promise<void> {
-    await this.safeExecute("tool.voice.listen_start", {});
+    // Retry in case voice module capabilities are not registered yet at startup
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const result = await this.safeExecute("tool.voice.listen_start", {});
+      if (result?.success && result.data?.ok) return;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    console.error("[VoiceLoop] Failed to start wake word detection after retries");
   }
 
   private async stopListening(): Promise<void> {

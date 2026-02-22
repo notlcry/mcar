@@ -31,6 +31,7 @@ venv.bak/
 
 # AI桌宠配置文件 - 包含API密钥，不应提交
 .ai_pet_env
+.ai_pet_env.systemd
 ai_pet_config.json
 src/ai_pet_config.json
 
@@ -44,6 +45,19 @@ src/data/
 *.log
 logs/
 src/data/logs/
+
+# 运行时 PID 文件
+*.pid
+
+# 验证运行记录（自动生成）
+docs/verification/run-*/
+docs/verification/runtime-check*
+
+# Python 构建产物
+*.egg-info/
+
+# 额外虚拟环境
+.venv-gate/
 
 # 临时文件
 *.tmp

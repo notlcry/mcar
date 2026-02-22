@@ -44,6 +44,12 @@ PWMD = 11  # Motor D (right rear) speed
 DIN1_PIN = 25
 DIN2_PIN = 24
 
+# Legacy LOBOROBOT polarity:
+# - Motor A/D: forward => dir1 low, dir2 high
+# - Motor B/C: forward => dir1 high, dir2 low
+POLARITY_AD_FORWARD_DIR1_HIGH = False
+POLARITY_BC_FORWARD_DIR1_HIGH = True
+
 
 class MotionDriver:
     """Async motor driver with cancel support."""
@@ -120,40 +126,47 @@ class MotionDriver:
     def _set_motor(
         self, pwm_ch: int, dir1: int | None, dir2: int | None,
         gpio1: int | None, gpio2: int | None,
-        speed: int, forward: bool
+        speed: int, forward: bool, forward_dir1_high: bool
     ) -> None:
         """Configure a single motor direction and speed."""
+        if forward:
+            dir1_value = forward_dir1_high
+            dir2_value = not forward_dir1_high
+        else:
+            dir1_value = not forward_dir1_high
+            dir2_value = forward_dir1_high
+
         if dir1 is not None and dir2 is not None:
-            self._set_digital(dir1, forward)
-            self._set_digital(dir2, not forward)
+            self._set_digital(dir1, dir1_value)
+            self._set_digital(dir2, dir2_value)
         if gpio1 is not None and gpio2 is not None:
-            self._set_gpio(gpio1, forward)
-            self._set_gpio(gpio2, not forward)
+            self._set_gpio(gpio1, dir1_value)
+            self._set_gpio(gpio2, dir2_value)
         self._set_motor_speed(pwm_ch, speed)
 
     def _motors_forward(self, speed: int) -> None:
-        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, True)
-        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, True)
-        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, True)
-        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, True)
+        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, True, POLARITY_AD_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, True, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, True, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, True, POLARITY_AD_FORWARD_DIR1_HIGH)
 
     def _motors_backward(self, speed: int) -> None:
-        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, False)
-        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, False)
-        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, False)
-        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, False)
+        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, False, POLARITY_AD_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, False, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, False, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, False, POLARITY_AD_FORWARD_DIR1_HIGH)
 
     def _motors_turn_left(self, speed: int) -> None:
-        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, False)
-        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, True)
-        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, False)
-        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, True)
+        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, False, POLARITY_AD_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, True, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, False, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, True, POLARITY_AD_FORWARD_DIR1_HIGH)
 
     def _motors_turn_right(self, speed: int) -> None:
-        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, True)
-        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, False)
-        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, True)
-        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, False)
+        self._set_motor(PWMA, AIN1, AIN2, None, None, speed, True, POLARITY_AD_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMB, BIN1, BIN2, None, None, speed, False, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMC, CIN1, CIN2, None, None, speed, True, POLARITY_BC_FORWARD_DIR1_HIGH)
+        self._set_motor(PWMD, None, None, DIN1_PIN, DIN2_PIN, speed, False, POLARITY_AD_FORWARD_DIR1_HIGH)
 
     def _motors_stop(self) -> None:
         for ch in [PWMA, PWMB, PWMC, PWMD]:

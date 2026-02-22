@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1771380204866" clover="3.2.0">
-  <project timestamp="1771380204866" name="All files">
-    <metrics statements="3835" coveredstatements="2954" conditionals="842" coveredconditionals="687" methods="276" coveredmethods="245" elements="4953" coveredelements="3886" complexity="0" loc="3835" ncloc="3835" packages="14" files="42" classes="42"/>
+<coverage generated="1771466655257" clover="3.2.0">
+  <project timestamp="1771466655257" name="All files">
+    <metrics statements="3835" coveredstatements="2954" conditionals="843" coveredconditionals="688" methods="276" coveredmethods="245" elements="4954" coveredelements="3887" complexity="0" loc="3835" ncloc="3835" packages="14" files="42" classes="42"/>
     <package name="agent">
       <metrics statements="560" coveredstatements="317" conditionals="90" coveredconditionals="55" methods="26" coveredmethods="22"/>
-      <file name="agent-runtime.ts" path="/Users/xiaorain/code/mcar/core/src/agent/agent-runtime.ts">
+      <file name="agent-runtime.ts" path="/root/mcar/core/src/agent/agent-runtime.ts">
         <metrics statements="84" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
         <line num="11" count="0" type="stmt"/>
         <line num="12" count="0" type="stmt"/>
@@ -91,7 +91,7 @@
         <line num="145" count="0" type="stmt"/>
         <line num="146" count="0" type="stmt"/>
       </file>
-      <file name="degradation-handler.ts" path="/Users/xiaorain/code/mcar/core/src/agent/degradation-handler.ts">
+      <file name="degradation-handler.ts" path="/root/mcar/core/src/agent/degradation-handler.ts">
         <metrics statements="86" coveredstatements="79" conditionals="15" coveredconditionals="13" methods="10" coveredmethods="8"/>
         <line num="16" count="1" type="stmt"/>
         <line num="17" count="1" type="stmt"/>
@@ -180,7 +180,7 @@
         <line num="140" count="2" type="stmt"/>
         <line num="141" count="1" type="stmt"/>
       </file>
-      <file name="prompt-builder.ts" path="/Users/xiaorain/code/mcar/core/src/agent/prompt-builder.ts">
+      <file name="prompt-builder.ts" path="/root/mcar/core/src/agent/prompt-builder.ts">
         <metrics statements="49" coveredstatements="49" conditionals="17" coveredconditionals="11" methods="3" coveredmethods="3"/>
         <line num="13" count="1" type="stmt"/>
         <line num="28" count="1" type="stmt"/>
@@ -232,7 +232,7 @@
         <line num="103" count="6" type="stmt"/>
         <line num="104" count="1" type="stmt"/>
       </file>
-      <file name="session-summarizer.ts" path="/Users/xiaorain/code/mcar/core/src/agent/session-summarizer.ts">
+      <file name="session-summarizer.ts" path="/root/mcar/core/src/agent/session-summarizer.ts">
         <metrics statements="95" coveredstatements="93" conditionals="29" coveredconditionals="24" methods="7" coveredmethods="7"/>
         <line num="12" count="1" type="stmt"/>
         <line num="14" count="1" type="stmt"/>
@@ -330,7 +330,7 @@
         <line num="158" count="3" type="stmt"/>
         <line num="159" count="1" type="stmt"/>
       </file>
-      <file name="tool-adapter.ts" path="/Users/xiaorain/code/mcar/core/src/agent/tool-adapter.ts">
+      <file name="tool-adapter.ts" path="/root/mcar/core/src/agent/tool-adapter.ts">
         <metrics statements="246" coveredstatements="96" conditionals="28" coveredconditionals="6" methods="5" coveredmethods="3"/>
         <line num="10" count="1" type="stmt"/>
         <line num="16" count="1" type="stmt"/>
@@ -582,7 +582,7 @@
     </package>
     <package name="audit">
       <metrics statements="296" coveredstatements="264" conditionals="75" coveredconditionals="69" methods="36" coveredmethods="33"/>
-      <file name="audit-logger.ts" path="/Users/xiaorain/code/mcar/core/src/audit/audit-logger.ts">
+      <file name="audit-logger.ts" path="/root/mcar/core/src/audit/audit-logger.ts">
         <metrics statements="82" coveredstatements="52" conditionals="13" coveredconditionals="9" methods="11" coveredmethods="8"/>
         <line num="5" count="1" type="stmt"/>
         <line num="11" count="1" type="stmt"/>
@@ -667,7 +667,7 @@
         <line num="111" count="0" type="stmt"/>
         <line num="112" count="1" type="stmt"/>
       </file>
-      <file name="audit-store.ts" path="/Users/xiaorain/code/mcar/core/src/audit/audit-store.ts">
+      <file name="audit-store.ts" path="/root/mcar/core/src/audit/audit-store.ts">
         <metrics statements="72" coveredstatements="72" conditionals="19" coveredconditionals="19" methods="11" coveredmethods="11"/>
         <line num="8" count="1" type="stmt"/>
         <line num="11" count="1" type="stmt"/>
@@ -742,7 +742,7 @@
         <line num="127" count="14" type="stmt"/>
         <line num="128" count="1" type="stmt"/>
       </file>
-      <file name="redactor.ts" path="/Users/xiaorain/code/mcar/core/src/audit/redactor.ts">
+      <file name="redactor.ts" path="/root/mcar/core/src/audit/redactor.ts">
         <metrics statements="57" coveredstatements="55" conditionals="22" coveredconditionals="20" methods="4" coveredmethods="4"/>
         <line num="12" count="1" type="stmt"/>
         <line num="19" count="1" type="cond" truecount="1" falsecount="0"/>
@@ -802,7 +802,7 @@
         <line num="86" count="5" type="stmt"/>
         <line num="87" count="5" type="stmt"/>
       </file>
-      <file name="session-recorder.ts" path="/Users/xiaorain/code/mcar/core/src/audit/session-recorder.ts">
+      <file name="session-recorder.ts" path="/root/mcar/core/src/audit/session-recorder.ts">
         <metrics statements="85" coveredstatements="85" conditionals="20" coveredconditionals="20" methods="9" coveredmethods="9"/>
         <line num="9" count="1" type="stmt"/>
         <line num="35" count="1" type="stmt"/>
@@ -890,13 +890,13 @@
         <line num="161" count="2" type="stmt"/>
         <line num="162" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/audit/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/audit/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>
     <package name="automation">
       <metrics statements="114" coveredstatements="110" conditionals="40" coveredconditionals="34" methods="8" coveredmethods="8"/>
-      <file name="rule-engine.ts" path="/Users/xiaorain/code/mcar/core/src/automation/rule-engine.ts">
+      <file name="rule-engine.ts" path="/root/mcar/core/src/automation/rule-engine.ts">
         <metrics statements="114" coveredstatements="110" conditionals="40" coveredconditionals="34" methods="8" coveredmethods="8"/>
         <line num="50" count="1" type="stmt"/>
         <line num="51" count="1" type="stmt"/>
@@ -1016,7 +1016,7 @@
     </package>
     <package name="capability">
       <metrics statements="383" coveredstatements="317" conditionals="113" coveredconditionals="97" methods="29" coveredmethods="24"/>
-      <file name="executor.ts" path="/Users/xiaorain/code/mcar/core/src/capability/executor.ts">
+      <file name="executor.ts" path="/root/mcar/core/src/capability/executor.ts">
         <metrics statements="286" coveredstatements="272" conditionals="107" coveredconditionals="92" methods="20" coveredmethods="19"/>
         <line num="6" count="1" type="stmt"/>
         <line num="14" count="1" type="stmt"/>
@@ -1305,7 +1305,7 @@
         <line num="417" count="9" type="stmt"/>
         <line num="418" count="1" type="stmt"/>
       </file>
-      <file name="registry.ts" path="/Users/xiaorain/code/mcar/core/src/capability/registry.ts">
+      <file name="registry.ts" path="/root/mcar/core/src/capability/registry.ts">
         <metrics statements="79" coveredstatements="27" conditionals="6" coveredconditionals="5" methods="9" coveredmethods="5"/>
         <line num="9" count="1" type="stmt"/>
         <line num="17" count="1" type="stmt"/>
@@ -1387,7 +1387,7 @@
         <line num="138" count="1" type="stmt"/>
         <line num="139" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/capability/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/capability/types.ts">
         <metrics statements="18" coveredstatements="18" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
         <line num="128" count="1" type="stmt"/>
         <line num="129" count="1" type="stmt"/>
@@ -1411,7 +1411,7 @@
     </package>
     <package name="config">
       <metrics statements="43" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
-      <file name="config.ts" path="/Users/xiaorain/code/mcar/core/src/config/config.ts">
+      <file name="config.ts" path="/root/mcar/core/src/config/config.ts">
         <metrics statements="43" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
         <line num="45" count="0" type="stmt"/>
         <line num="46" count="0" type="stmt"/>
@@ -1460,7 +1460,7 @@
     </package>
     <package name="health">
       <metrics statements="290" coveredstatements="273" conditionals="75" coveredconditionals="68" methods="21" coveredmethods="21"/>
-      <file name="cleanup-scheduler.ts" path="/Users/xiaorain/code/mcar/core/src/health/cleanup-scheduler.ts">
+      <file name="cleanup-scheduler.ts" path="/root/mcar/core/src/health/cleanup-scheduler.ts">
         <metrics statements="48" coveredstatements="47" conditionals="15" coveredconditionals="14" methods="5" coveredmethods="5"/>
         <line num="20" count="1" type="stmt"/>
         <line num="21" count="1" type="stmt"/>
@@ -1511,7 +1511,7 @@
         <line num="89" count="5" type="stmt"/>
         <line num="90" count="1" type="stmt"/>
       </file>
-      <file name="health-monitor.ts" path="/Users/xiaorain/code/mcar/core/src/health/health-monitor.ts">
+      <file name="health-monitor.ts" path="/root/mcar/core/src/health/health-monitor.ts">
         <metrics statements="87" coveredstatements="79" conditionals="19" coveredconditionals="16" methods="7" coveredmethods="7"/>
         <line num="13" count="1" type="stmt"/>
         <line num="29" count="1" type="stmt"/>
@@ -1601,7 +1601,7 @@
         <line num="147" count="1" type="stmt"/>
         <line num="148" count="1" type="stmt"/>
       </file>
-      <file name="module-watchdog.ts" path="/Users/xiaorain/code/mcar/core/src/health/module-watchdog.ts">
+      <file name="module-watchdog.ts" path="/root/mcar/core/src/health/module-watchdog.ts">
         <metrics statements="155" coveredstatements="147" conditionals="41" coveredconditionals="38" methods="9" coveredmethods="9"/>
         <line num="11" count="1" type="stmt"/>
         <line num="12" count="1" type="stmt"/>
@@ -1762,7 +1762,7 @@
     </package>
     <package name="ipc">
       <metrics statements="310" coveredstatements="203" conditionals="40" coveredconditionals="27" methods="35" coveredmethods="20"/>
-      <file name="module-bridge.ts" path="/Users/xiaorain/code/mcar/core/src/ipc/module-bridge.ts">
+      <file name="module-bridge.ts" path="/root/mcar/core/src/ipc/module-bridge.ts">
         <metrics statements="234" coveredstatements="167" conditionals="34" coveredconditionals="22" methods="22" coveredmethods="15"/>
         <line num="9" count="1" type="stmt"/>
         <line num="10" count="1" type="stmt"/>
@@ -1999,7 +1999,7 @@
         <line num="337" count="0" type="stmt"/>
         <line num="338" count="1" type="stmt"/>
       </file>
-      <file name="module-proxy.ts" path="/Users/xiaorain/code/mcar/core/src/ipc/module-proxy.ts">
+      <file name="module-proxy.ts" path="/root/mcar/core/src/ipc/module-proxy.ts">
         <metrics statements="70" coveredstatements="30" conditionals="4" coveredconditionals="3" methods="11" coveredmethods="3"/>
         <line num="11" count="1" type="stmt"/>
         <line num="12" count="1" type="cond" truecount="1" falsecount="0"/>
@@ -2072,7 +2072,7 @@
         <line num="89" count="0" type="stmt"/>
         <line num="90" count="1" type="stmt"/>
       </file>
-      <file name="protocol.ts" path="/Users/xiaorain/code/mcar/core/src/ipc/protocol.ts">
+      <file name="protocol.ts" path="/root/mcar/core/src/ipc/protocol.ts">
         <metrics statements="6" coveredstatements="6" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
         <line num="130" count="1" type="cond" truecount="1" falsecount="0"/>
         <line num="131" count="26" type="stmt"/>
@@ -2083,8 +2083,8 @@
       </file>
     </package>
     <package name="memory">
-      <metrics statements="402" coveredstatements="383" conditionals="90" coveredconditionals="78" methods="32" coveredmethods="32"/>
-      <file name="keyword-extractor.ts" path="/Users/xiaorain/code/mcar/core/src/memory/keyword-extractor.ts">
+      <metrics statements="402" coveredstatements="383" conditionals="91" coveredconditionals="79" methods="32" coveredmethods="32"/>
+      <file name="keyword-extractor.ts" path="/root/mcar/core/src/memory/keyword-extractor.ts">
         <metrics statements="68" coveredstatements="68" conditionals="21" coveredconditionals="21" methods="2" coveredmethods="2"/>
         <line num="10" count="1" type="stmt"/>
         <line num="11" count="1" type="stmt"/>
@@ -2155,7 +2155,7 @@
         <line num="101" count="5" type="stmt"/>
         <line num="102" count="5" type="stmt"/>
       </file>
-      <file name="memory-export.ts" path="/Users/xiaorain/code/mcar/core/src/memory/memory-export.ts">
+      <file name="memory-export.ts" path="/root/mcar/core/src/memory/memory-export.ts">
         <metrics statements="50" coveredstatements="48" conditionals="6" coveredconditionals="5" methods="2" coveredmethods="2"/>
         <line num="28" count="1" type="stmt"/>
         <line num="33" count="1" type="cond" truecount="1" falsecount="0"/>
@@ -2208,7 +2208,7 @@
         <line num="90" count="3" type="stmt"/>
         <line num="91" count="3" type="stmt"/>
       </file>
-      <file name="memory-service.ts" path="/Users/xiaorain/code/mcar/core/src/memory/memory-service.ts">
+      <file name="memory-service.ts" path="/root/mcar/core/src/memory/memory-service.ts">
         <metrics statements="116" coveredstatements="116" conditionals="23" coveredconditionals="20" methods="16" coveredmethods="16"/>
         <line num="16" count="1" type="stmt"/>
         <line num="18" count="1" type="stmt"/>
@@ -2327,8 +2327,8 @@
         <line num="196" count="51" type="stmt"/>
         <line num="197" count="1" type="stmt"/>
       </file>
-      <file name="memory-store.ts" path="/Users/xiaorain/code/mcar/core/src/memory/memory-store.ts">
-        <metrics statements="168" coveredstatements="151" conditionals="39" coveredconditionals="31" methods="11" coveredmethods="11"/>
+      <file name="memory-store.ts" path="/root/mcar/core/src/memory/memory-store.ts">
+        <metrics statements="168" coveredstatements="151" conditionals="40" coveredconditionals="32" methods="11" coveredmethods="11"/>
         <line num="5" count="1" type="stmt"/>
         <line num="6" count="1" type="stmt"/>
         <line num="13" count="1" type="stmt"/>
@@ -2379,7 +2379,7 @@
         <line num="94" count="74" type="stmt"/>
         <line num="96" count="1" type="cond" truecount="1" falsecount="0"/>
         <line num="97" count="19" type="stmt"/>
-        <line num="100" count="19" type="cond" truecount="2" falsecount="0"/>
+        <line num="100" count="19" type="cond" truecount="3" falsecount="0"/>
         <line num="101" count="12" type="stmt"/>
         <line num="102" count="19" type="stmt"/>
         <line num="104" count="1" type="cond" truecount="1" falsecount="0"/>
@@ -2498,13 +2498,13 @@
         <line num="247" count="53" type="stmt"/>
         <line num="248" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/memory/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/memory/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>
     <package name="observability">
       <metrics statements="126" coveredstatements="122" conditionals="43" coveredconditionals="42" methods="14" coveredmethods="13"/>
-      <file name="incident-recorder.ts" path="/Users/xiaorain/code/mcar/core/src/observability/incident-recorder.ts">
+      <file name="incident-recorder.ts" path="/root/mcar/core/src/observability/incident-recorder.ts">
         <metrics statements="56" coveredstatements="54" conditionals="19" coveredconditionals="18" methods="4" coveredmethods="4"/>
         <line num="29" count="1" type="stmt"/>
         <line num="30" count="1" type="stmt"/>
@@ -2563,7 +2563,7 @@
         <line num="100" count="12" type="stmt"/>
         <line num="101" count="1" type="stmt"/>
       </file>
-      <file name="performance-tracker.ts" path="/Users/xiaorain/code/mcar/core/src/observability/performance-tracker.ts">
+      <file name="performance-tracker.ts" path="/root/mcar/core/src/observability/performance-tracker.ts">
         <metrics statements="70" coveredstatements="68" conditionals="24" coveredconditionals="24" methods="10" coveredmethods="9"/>
         <line num="23" count="1" type="stmt"/>
         <line num="24" count="1" type="cond" truecount="1" falsecount="0"/>
@@ -2639,7 +2639,7 @@
     </package>
     <package name="orchestrator">
       <metrics statements="346" coveredstatements="278" conditionals="75" coveredconditionals="62" methods="23" coveredmethods="23"/>
-      <file name="action-dispatcher.ts" path="/Users/xiaorain/code/mcar/core/src/orchestrator/action-dispatcher.ts">
+      <file name="action-dispatcher.ts" path="/root/mcar/core/src/orchestrator/action-dispatcher.ts">
         <metrics statements="131" coveredstatements="123" conditionals="29" coveredconditionals="25" methods="6" coveredmethods="6"/>
         <line num="11" count="1" type="stmt"/>
         <line num="21" count="1" type="stmt"/>
@@ -2773,7 +2773,7 @@
         <line num="215" count="7" type="stmt"/>
         <line num="216" count="1" type="stmt"/>
       </file>
-      <file name="context-builder.ts" path="/Users/xiaorain/code/mcar/core/src/orchestrator/context-builder.ts">
+      <file name="context-builder.ts" path="/root/mcar/core/src/orchestrator/context-builder.ts">
         <metrics statements="36" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
         <line num="23" count="0" type="stmt"/>
         <line num="24" count="0" type="stmt"/>
@@ -2812,7 +2812,7 @@
         <line num="63" count="0" type="stmt"/>
         <line num="64" count="0" type="stmt"/>
       </file>
-      <file name="session-controller.ts" path="/Users/xiaorain/code/mcar/core/src/orchestrator/session-controller.ts">
+      <file name="session-controller.ts" path="/root/mcar/core/src/orchestrator/session-controller.ts">
         <metrics statements="60" coveredstatements="57" conditionals="17" coveredconditionals="16" methods="7" coveredmethods="7"/>
         <line num="13" count="1" type="stmt"/>
         <line num="14" count="1" type="stmt"/>
@@ -2875,7 +2875,7 @@
         <line num="94" count="3" type="stmt"/>
         <line num="95" count="1" type="stmt"/>
       </file>
-      <file name="voice-loop.ts" path="/Users/xiaorain/code/mcar/core/src/orchestrator/voice-loop.ts">
+      <file name="voice-loop.ts" path="/root/mcar/core/src/orchestrator/voice-loop.ts">
         <metrics statements="119" coveredstatements="98" conditionals="28" coveredconditionals="20" methods="9" coveredmethods="9"/>
         <line num="21" count="1" type="stmt"/>
         <line num="22" count="1" type="stmt"/>
@@ -3000,7 +3000,7 @@
     </package>
     <package name="safety">
       <metrics statements="182" coveredstatements="162" conditionals="62" coveredconditionals="50" methods="10" coveredmethods="10"/>
-      <file name="policy-engine.ts" path="/Users/xiaorain/code/mcar/core/src/safety/policy-engine.ts">
+      <file name="policy-engine.ts" path="/root/mcar/core/src/safety/policy-engine.ts">
         <metrics statements="139" coveredstatements="125" conditionals="49" coveredconditionals="39" methods="4" coveredmethods="4"/>
         <line num="17" count="1" type="stmt"/>
         <line num="23" count="1" type="stmt"/>
@@ -3142,7 +3142,7 @@
         <line num="191" count="3" type="stmt"/>
         <line num="192" count="1" type="stmt"/>
       </file>
-      <file name="stop-handler.ts" path="/Users/xiaorain/code/mcar/core/src/safety/stop-handler.ts">
+      <file name="stop-handler.ts" path="/root/mcar/core/src/safety/stop-handler.ts">
         <metrics statements="43" coveredstatements="37" conditionals="12" coveredconditionals="10" methods="5" coveredmethods="5"/>
         <line num="16" count="1" type="stmt"/>
         <line num="17" count="1" type="stmt"/>
@@ -3188,13 +3188,13 @@
         <line num="84" count="30" type="stmt"/>
         <line num="85" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/safety/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/safety/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>
     <package name="skill">
       <metrics statements="301" coveredstatements="206" conditionals="59" coveredconditionals="46" methods="15" coveredmethods="14"/>
-      <file name="builtin-skills.ts" path="/Users/xiaorain/code/mcar/core/src/skill/builtin-skills.ts">
+      <file name="builtin-skills.ts" path="/root/mcar/core/src/skill/builtin-skills.ts">
         <metrics statements="90" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
         <line num="12" count="0" type="stmt"/>
         <line num="13" count="0" type="stmt"/>
@@ -3287,7 +3287,7 @@
         <line num="112" count="0" type="stmt"/>
         <line num="113" count="0" type="stmt"/>
       </file>
-      <file name="skill-engine.ts" path="/Users/xiaorain/code/mcar/core/src/skill/skill-engine.ts">
+      <file name="skill-engine.ts" path="/root/mcar/core/src/skill/skill-engine.ts">
         <metrics statements="211" coveredstatements="206" conditionals="57" coveredconditionals="44" methods="13" coveredmethods="12"/>
         <line num="19" count="1" type="stmt"/>
         <line num="21" count="1" type="stmt"/>
@@ -3501,13 +3501,13 @@
         <line num="302" count="4" type="stmt"/>
         <line num="303" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/skill/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/skill/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>
     <package name="state">
       <metrics statements="70" coveredstatements="67" conditionals="17" coveredconditionals="15" methods="14" coveredmethods="14"/>
-      <file name="state-service.ts" path="/Users/xiaorain/code/mcar/core/src/state/state-service.ts">
+      <file name="state-service.ts" path="/root/mcar/core/src/state/state-service.ts">
         <metrics statements="70" coveredstatements="67" conditionals="16" coveredconditionals="14" methods="13" coveredmethods="13"/>
         <line num="13" count="1" type="stmt"/>
         <line num="14" count="1" type="stmt"/>
@@ -3580,13 +3580,13 @@
         <line num="96" count="1" type="stmt"/>
         <line num="97" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/state/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/state/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>
     <package name="web">
       <metrics statements="412" coveredstatements="252" conditionals="62" coveredconditionals="43" methods="12" coveredmethods="10"/>
-      <file name="server.ts" path="/Users/xiaorain/code/mcar/core/src/web/server.ts">
+      <file name="server.ts" path="/root/mcar/core/src/web/server.ts">
         <metrics statements="412" coveredstatements="252" conditionals="61" coveredconditionals="42" methods="11" coveredmethods="9"/>
         <line num="19" count="1" type="stmt"/>
         <line num="20" count="1" type="stmt"/>
@@ -4001,7 +4001,7 @@
         <line num="548" count="0" type="stmt"/>
         <line num="549" count="1" type="stmt"/>
       </file>
-      <file name="types.ts" path="/Users/xiaorain/code/mcar/core/src/web/types.ts">
+      <file name="types.ts" path="/root/mcar/core/src/web/types.ts">
         <metrics statements="0" coveredstatements="0" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
       </file>
     </package>

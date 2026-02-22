@@ -45,11 +45,18 @@ async function main(): Promise<void> {
   loadEnv({ path: resolve(__dirname, "../../.ai_pet_env") });
   loadEnv(); // Also try .env
 
+  const llmProvider = process.env.LLM_PROVIDER ?? "google";
+  const llmApiKey =
+    process.env.LLM_API_KEY ??
+    process.env.DASHSCOPE_API_KEY ??
+    process.env.GEMINI_API_KEY;
+
   const config = loadConfig({
     llm: {
-      provider: process.env.LLM_PROVIDER ?? "google",
-      model: process.env.LLM_MODEL ?? "gemini-2.5-flash",
-      apiKey: process.env.GEMINI_API_KEY,
+      provider: llmProvider,
+      model: process.env.LLM_MODEL ?? (llmProvider === "dashscope" ? "qwen-plus" : "gemini-2.5-flash"),
+      apiKey: llmApiKey,
+      baseUrl: process.env.LLM_BASE_URL,
     },
   });
 

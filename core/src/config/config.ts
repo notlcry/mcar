@@ -13,6 +13,7 @@ export interface LlmConfig {
   readonly provider: string;
   readonly model: string;
   readonly apiKey?: string;
+  readonly baseUrl?: string;
 }
 
 export interface MemoryConfig {

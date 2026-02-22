@@ -14,6 +14,22 @@ GEMINI_API_KEY="your_gemini_api_key_here"
 # Picovoice 访问密钥（自定义唤醒词）
 # 获取地址: https://console.picovoice.ai/
 # PICOVOICE_ACCESS_KEY="your_picovoice_access_key_here"
+# 可选：指定自定义唤醒词模型（.ppn）
+# PICOVOICE_KEYWORD_PATH="/root/mcar/legacy/src/wake_words/kk_zh_raspberry-pi_v3_0_0.ppn"
+# 可选：指定 Porcupine 语言模型（.pv）
+# PICOVOICE_MODEL_PATH="/root/mcar/legacy/src/wake_words/porcupine_params_zh.pv"
+# 可选：内置英文唤醒词（当未指定 KEYWORD_PATH 时生效），默认 picovoice
+# PICOVOICE_BUILTIN_KEYWORD="picovoice"
+# 可选：灵敏度 0.0~1.0，默认 0.55（数值越大越容易触发误唤醒）
+# PICOVOICE_SENSITIVITY=0.6
+# 可选：指定输入设备索引（`arecord -l` / PyAudio 列表对应索引）
+# VOICE_INPUT_DEVICE_INDEX=2
+# 可选：按名称模糊匹配输入设备（例如 seeed / respeaker / 2mic）
+# VOICE_INPUT_DEVICE_NAME="seeed-2mic-voicecard"
+# 可选：双麦处理模式 dominant|mix|left|right，默认 dominant
+# VOICE_WAKE_CHANNEL_MODE="dominant"
+# 可选：唤醒音频增益（0.1~4.0），默认 1.0
+# VOICE_WAKE_AUDIO_GAIN=1.2
 
 # ─── 可选：Web 服务器 ─────────────────────────────────────
 # WEB_PORT=8080
