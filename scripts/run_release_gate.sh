@@ -3,6 +3,7 @@ set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SKIP_GATE_A="${SKIP_GATE_A:-0}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 # Keep gate execution at low priority to reduce SSH/network starvation on Raspberry Pi.
 # Re-exec only once to avoid recursion.
@@ -17,8 +18,8 @@ fi
 STAMP="$(date +%Y-%m-%d_%H-%M-%S)"
 OUT_DIR="$ROOT_DIR/docs/verification/run-$STAMP"
 REPORT="$OUT_DIR/report.md"
-BASE_URL="http://127.0.0.1:8080"
-VENV_DIR="$ROOT_DIR/.venv-gate"
+BASE_URL="${BASE_URL:-http://127.0.0.1:${WEB_PORT:-8080}}"
+VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv-gate}"
 IGNORE_BUTTON_HW="${IGNORE_BUTTON_HW:-1}"
 
 mkdir -p "$OUT_DIR"
@@ -174,7 +175,7 @@ api_call() {
 is_hw_missing() {
   local primary="$1"
   local secondary="${2:-}"
-  python3 - "$primary" "$secondary" <<'PY'
+  "$PYTHON_BIN" - "$primary" "$secondary" <<'PY'
 import sys
 from pathlib import Path
 
@@ -220,28 +221,26 @@ cat > "$REPORT" <<HEAD
 
 - Root: $ROOT_DIR
 - Output: $(rel_path "$OUT_DIR")
-- Contract precedence: modules/*/capabilities.json > core/src/web/server.ts > docs/TESTING.md
+- Contract precedence: modules/*/capabilities.json > modules/robot_service/api.py > docs/TESTING.md
 
 ## Results
 HEAD
 
 # Gate P ----------------------------------------------------------------------
-node_major="$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)"
-if [ "$node_major" -ge 20 ] 2>/dev/null; then
-  record "PASS" "Gate P" "node_version" "$(node --version)"
+if command -v node >/dev/null 2>&1; then
+  record "NA" "Gate P" "node_version" "$(node --version) (not required by Python runtime)"
 else
-  record "FAIL" "Gate P" "node_version" "node >=20 required"
-  add_retest "升级 Node.js 至 >=20 后重跑 Gate P/A/B/C。"
+  record "NA" "Gate P" "node_version" "not installed (not required by Python runtime)"
 fi
 
-python3 - <<'PY' >/dev/null 2>&1
+"$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
 import sys
 raise SystemExit(0 if sys.version_info >= (3, 11) else 1)
 PY
 if [ $? -eq 0 ]; then
-  record "PASS" "Gate P" "python_version" "$(python3 --version 2>/dev/null)"
+  record "PASS" "Gate P" "python_version" "$("$PYTHON_BIN" --version 2>/dev/null)"
 else
-  record "FAIL" "Gate P" "python_version" "python >=3.11 required, got $(python3 --version 2>/dev/null)"
+  record "FAIL" "Gate P" "python_version" "python >=3.11 required, got $("$PYTHON_BIN" --version 2>/dev/null)"
   add_retest "升级 Python 至 >=3.11 后重跑 Gate P/A/B/C。"
 fi
 
@@ -252,18 +251,20 @@ else
   add_retest "补齐 /root/mcar/.ai_pet_env 并配置必要密钥后重跑。"
 fi
 
-if [ -f "$ROOT_DIR/.ai_pet_env" ] && grep -Eq '^(export[[:space:]]+)?GEMINI_API_KEY="?[^"]+"?$' "$ROOT_DIR/.ai_pet_env" && ! grep -Eq 'your_.*here' "$ROOT_DIR/.ai_pet_env"; then
-  record "PASS" "Gate P" "gemini_key" "configured"
+if [ -f "$ROOT_DIR/.ai_pet_env" ] && grep -Eq '^(export[[:space:]]+)?(GEMINI_API_KEY|GOOGLE_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|OPENROUTER_API_KEY)="?[^"]+"?$' "$ROOT_DIR/.ai_pet_env" && ! grep -Eq 'your_.*here' "$ROOT_DIR/.ai_pet_env"; then
+  record "PASS" "Gate P" "llm_key" "configured"
 else
-  record "FAIL" "Gate P" "gemini_key" "missing or template value"
-  add_retest "配置 GEMINI_API_KEY 后重跑 Gate B/C 对话能力验证。"
+  record "NA" "Gate P" "llm_key" "N/A-KEY-MISSING (chat uses local degradation response)"
+  add_retest "配置 Pydantic AI 支持的 provider key 后补测真实 LLM 对话能力。"
 fi
 
-if [ -f "$ROOT_DIR/.ai_pet_env" ] && grep -Eq '^(export[[:space:]]+)?PICOVOICE_ACCESS_KEY="?[^"]+"?$' "$ROOT_DIR/.ai_pet_env" && ! grep -Eq 'your_.*here' "$ROOT_DIR/.ai_pet_env"; then
-  record "PASS" "Gate P" "picovoice_key" "configured"
+if [ -f "$ROOT_DIR/.ai_pet_env" ] && grep -Eq '^(export[[:space:]]+)?VOICE_WAKE_PROVIDER="?[^"]+"?$' "$ROOT_DIR/.ai_pet_env" && ! grep -Eq 'VOICE_WAKE_PROVIDER="?none"?$' "$ROOT_DIR/.ai_pet_env"; then
+  record "PASS" "Gate P" "wake_provider" "configured"
+elif [ -f "$ROOT_DIR/.ai_pet_env" ] && grep -Eq '^(export[[:space:]]+)?PICOVOICE_ACCESS_KEY="?[^"]+"?$' "$ROOT_DIR/.ai_pet_env" && ! grep -Eq 'your_.*here' "$ROOT_DIR/.ai_pet_env"; then
+  record "PASS" "Gate P" "wake_provider" "picovoice configured"
 else
-  record "NA" "Gate P" "picovoice_key" "N/A-KEY-MISSING (wake-word tests skipped; risk: continuous wake-word loop unverified)"
-  add_retest "配置 PICOVOICE_ACCESS_KEY 后补测 voice.listen_start/stop。"
+  record "NA" "Gate P" "wake_provider" "N/A-WAKE-PROVIDER-MISSING (wake-word tests skipped; risk: continuous wake-word loop unverified)"
+  add_retest "配置 VOICE_WAKE_PROVIDER=openwakeword 后补测 voice.listen_start/stop。"
 fi
 
 if [ -d "$ROOT_DIR/data" ]; then
@@ -280,22 +281,22 @@ else
 fi
 
 run_cmd "Gate P" "contract_motion_duration_ms" "$ROOT_DIR" \
-  "python3 -c 'import json,sys; d=json.load(open(\"modules/motion/capabilities.json\")); m={c[\"capability_id\"]:c for c in d}; req=[\"tool.motion.forward\",\"tool.motion.backward\",\"tool.motion.turn_left\",\"tool.motion.turn_right\"]; miss=[cid for cid in req if \"duration_ms\" not in m[cid][\"inputs_schema\"][\"properties\"]]; sys.exit(1 if miss else 0)'" || add_retest "补齐 tool.motion.* 输入字段 duration_ms（按 capabilities.json）后重跑。"
+  "\"$PYTHON_BIN\" -c 'import json,sys; d=json.load(open(\"modules/motion/capabilities.json\")); m={c[\"capability_id\"]:c for c in d}; req=[\"tool.motion.forward\",\"tool.motion.backward\",\"tool.motion.turn_left\",\"tool.motion.turn_right\"]; miss=[cid for cid in req if \"duration_ms\" not in m[cid][\"inputs_schema\"][\"properties\"]]; sys.exit(1 if miss else 0)'" || add_retest "补齐 tool.motion.* 输入字段 duration_ms（按 capabilities.json）后重跑。"
 
 run_cmd "Gate P" "contract_voice_timeout_s" "$ROOT_DIR" \
-  "python3 -c 'import json,sys; d=json.load(open(\"modules/voice/capabilities.json\")); c=[x for x in d if x[\"capability_id\"]==\"tool.voice.recognize\"][0]; props=c[\"inputs_schema\"].get(\"properties\",{}); sys.exit(0 if \"timeout_s\" in props else 1)'" || add_retest "补齐 tool.voice.recognize 输入字段 timeout_s 后重跑。"
+  "\"$PYTHON_BIN\" -c 'import json,sys; d=json.load(open(\"modules/voice/capabilities.json\")); c=[x for x in d if x[\"capability_id\"]==\"tool.voice.recognize\"][0]; props=c[\"inputs_schema\"].get(\"properties\",{}); sys.exit(0 if \"timeout_s\" in props else 1)'" || add_retest "补齐 tool.voice.recognize 输入字段 timeout_s 后重跑。"
 
 run_cmd "Gate P" "contract_infrared_output_fields" "$ROOT_DIR" \
-  "python3 -c 'import json,sys; d=json.load(open(\"modules/sensor/capabilities.json\")); c=[x for x in d if x[\"capability_id\"]==\"tool.sensor.infrared\"][0]; req=set(c[\"outputs_schema\"].get(\"required\",[])); props=set(c[\"outputs_schema\"].get(\"properties\",{}).keys()); need={\"left_obstacle\",\"right_obstacle\"}; sys.exit(0 if need.issubset(req) and need.issubset(props) else 1)'" || add_retest "补齐 tool.sensor.infrared 输出字段 left_obstacle/right_obstacle 后重跑。"
+  "\"$PYTHON_BIN\" -c 'import json,sys; d=json.load(open(\"modules/sensor/capabilities.json\")); c=[x for x in d if x[\"capability_id\"]==\"tool.sensor.infrared\"][0]; req=set(c[\"outputs_schema\"].get(\"required\",[])); props=set(c[\"outputs_schema\"].get(\"properties\",{}).keys()); need={\"left_obstacle\",\"right_obstacle\"}; sys.exit(0 if need.issubset(req) and need.issubset(props) else 1)'" || add_retest "补齐 tool.sensor.infrared 输出字段 left_obstacle/right_obstacle 后重跑。"
 
-run_cmd "Gate P" "server_chat_text_required" "$ROOT_DIR" \
-  "python3 -c 'from pathlib import Path; import sys; s=Path(\"core/src/web/server.ts\").read_text(); sys.exit(0 if \"if (!body.text)\" in s and \"text required\" in s else 1)'" || add_retest "修复 /api/chat 对 text 字段的校验逻辑后重跑。"
+run_cmd "Gate P" "api_chat_text_required" "$ROOT_DIR" \
+  "\"$PYTHON_BIN\" -c 'from pathlib import Path; import sys; s=Path(\"modules/robot_service/models.py\").read_text(); sys.exit(0 if \"class ChatRequest\" in s and \"text: str\" in s else 1)'" || add_retest "修复 /api/chat 对 text 字段的校验逻辑后重跑。"
 
 if run_cmd "Gate P" "docs_low_priority_reference" "$ROOT_DIR" \
-  "python3 -c 'from pathlib import Path; import sys; s=Path(\"docs/TESTING.md\").read_text(); need=[\"\\\"text\\\"\", \"duration_ms\", \"timeout_s\", \"left_obstacle\", \"right_obstacle\"]; sys.exit(0 if all(k in s for k in need) else 1)'"; then
-  record "PASS" "Gate P" "contract_precedence" "runtime checks aligned to modules > server > docs"
+  "\"$PYTHON_BIN\" -c 'from pathlib import Path; import sys; s=Path(\"docs/TESTING.md\").read_text(); need=[\"\\\"text\\\"\", \"duration_ms\", \"timeout_s\", \"left_obstacle\", \"right_obstacle\"]; sys.exit(0 if all(k in s for k in need) else 1)'"; then
+  record "PASS" "Gate P" "contract_precedence" "runtime checks aligned to modules > robot_service api > docs"
 else
-  record "NA" "Gate P" "contract_precedence" "docs partially out-of-date, runtime checks still enforce modules > server"
+  record "NA" "Gate P" "contract_precedence" "docs partially out-of-date, runtime checks still enforce modules > robot_service api"
 fi
 
 # Gate A ----------------------------------------------------------------------
@@ -306,15 +307,11 @@ else
   if [ -d "$VENV_DIR" ]; then
     record "PASS" "Gate A" "python_venv" "reused existing $(rel_path "$VENV_DIR")"
   else
-    run_cmd "Gate A" "python_venv" "$ROOT_DIR" "python3 -m venv \"$VENV_DIR\"" || gatea_fail=1
+    run_cmd "Gate A" "python_venv" "$ROOT_DIR" "\"$PYTHON_BIN\" -m venv \"$VENV_DIR\"" || gatea_fail=1
   fi
 
   run_cmd "Gate A" "modules_install" "$ROOT_DIR/modules" "\"$VENV_DIR/bin/python\" -m pip install -e \".[hw,voice,display,dev]\" || \"$VENV_DIR/bin/python\" -m pip install -e \".[dev]\"" || gatea_fail=1
-  run_cmd "Gate A" "core_npm_install" "$ROOT_DIR/core" "npm install" || gatea_fail=1
-  run_cmd "Gate A" "core_build" "$ROOT_DIR/core" "npm run build" || gatea_fail=1
-  run_cmd "Gate A" "core_test" "$ROOT_DIR/core" "PATH=\"$VENV_DIR/bin:\$PATH\" npm test" || gatea_fail=1
-  run_cmd "Gate A" "core_coverage_plugin" "$ROOT_DIR/core" "npm install --no-save @vitest/coverage-v8@3.2.4" || gatea_fail=1
-  run_cmd "Gate A" "core_test_coverage" "$ROOT_DIR/core" "PATH=\"$VENV_DIR/bin:\$PATH\" npm run test:coverage" || gatea_fail=1
+  run_cmd "Gate A" "robot_service_compile" "$ROOT_DIR" "\"$VENV_DIR/bin/python\" -m compileall modules/robot_service" || gatea_fail=1
   run_cmd "Gate A" "modules_pytest" "$ROOT_DIR/modules" "\"$VENV_DIR/bin/python\" -m pytest -q" || gatea_fail=1
 
   if [ $gatea_fail -ne 0 ]; then
@@ -323,16 +320,16 @@ else
 fi
 
 # Gate B ----------------------------------------------------------------------
-if [ $gatea_fail -ne 0 ] || [ ! -f "$ROOT_DIR/core/dist/index.js" ]; then
-  record "BLOCKED" "Gate B" "service_start" "blocked by Gate A failures or missing core/dist/index.js"
+if [ $gatea_fail -ne 0 ]; then
+  record "BLOCKED" "Gate B" "service_start" "blocked by Gate A failures"
   add_retest "Gate A 全部通过后重新启动 Gate B。"
 else
   service_log="$OUT_DIR/GateB_service.log"
   service_pid_file="$OUT_DIR/GateB_service.pid"
-  log_cmd "Gate B" "service_start" "cd \"$ROOT_DIR/core\" && PATH=\"$VENV_DIR/bin:\$PATH\" node dist/index.js"
+  log_cmd "Gate B" "service_start" "cd \"$ROOT_DIR/modules\" && PATH=\"$VENV_DIR/bin:\$PATH\" \"$VENV_DIR/bin/python\" -m robot_service --mock"
   (
-    cd "$ROOT_DIR/core"
-    PATH="$VENV_DIR/bin:$PATH" node dist/index.js >"$service_log" 2>&1 &
+    cd "$ROOT_DIR/modules"
+    PATH="$VENV_DIR/bin:$PATH" "$VENV_DIR/bin/python" -m robot_service --mock >"$service_log" 2>&1 &
     echo $! > "$service_pid_file"
   )
   service_pid="$(cat "$service_pid_file")"
@@ -375,7 +372,7 @@ if [ $service_started -eq 1 ]; then
 
   api_call "Gate B" "contract_chat_text_positive" "POST" "/api/chat" '{"text":"验收检查：请回复ok"}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 raise SystemExit(0 if isinstance(j, dict) and "response" in j else 1)
@@ -393,24 +390,44 @@ PY
     add_retest "修复 /api/chat 正向 text 调用后重跑。"
   fi
 
-  api_call "Gate B" "contract_chat_text_negative" "POST" "/api/chat" '{"message":"wrong"}' "400"
+  api_call "Gate B" "contract_voice_run_once_positive" "POST" "/api/voice/run_once" '{"source":"gate_b"}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
-msg = str(j.get("error", "")).lower()
-raise SystemExit(0 if "text" in msg else 1)
+raise SystemExit(0 if isinstance(j, dict) and "ok" in j else 1)
+PY
+  then
+    record "PASS" "Gate B" "contract_voice_run_once_positive" "accepted /api/voice/run_once source payload (json: $(rel_path "$API_OUT"))"
+  else
+    if [ $rc -eq 10 ]; then
+      record "FAIL" "Gate B" "contract_voice_run_once_positive" "curl failed (log: $(rel_path "$API_LOG"))"
+    elif [ $rc -eq 11 ]; then
+      record "FAIL" "Gate B" "contract_voice_run_once_positive" "http=$API_CODE expected 200 (json: $(rel_path "$API_OUT"))"
+    else
+      record "FAIL" "Gate B" "contract_voice_run_once_positive" "response missing 'ok' field (json: $(rel_path "$API_OUT"))"
+    fi
+    add_retest "修复 /api/voice/run_once 正向 source 调用后重跑。"
+  fi
+
+  api_call "Gate B" "contract_chat_text_negative" "POST" "/api/chat" '{"message":"wrong"}' "400,422"
+  rc=$?
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
+import json, sys
+j = json.load(open(sys.argv[1], encoding="utf-8"))
+blob = json.dumps(j, ensure_ascii=False).lower()
+raise SystemExit(0 if "text" in blob else 1)
 PY
   then
     record "PASS" "Gate B" "contract_chat_text_negative" "non-text payload rejected (json: $(rel_path "$API_OUT"))"
   else
     record "FAIL" "Gate B" "contract_chat_text_negative" "chat wrong-field payload not rejected as expected (json: $(rel_path "$API_OUT"))"
-    add_retest "确保 /api/chat 仅接受 text 字段并返回 400。"
+    add_retest "确保 /api/chat 仅接受 text 字段并返回 400/422。"
   fi
 
   api_call "Gate B" "contract_motion_duration_positive" "POST" "/api/invoke" '{"capability_id":"tool.motion.turn_left","input":{"speed":0,"duration_ms":120}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -425,7 +442,7 @@ PY
 
   api_call "Gate B" "contract_motion_duration_negative" "POST" "/api/invoke" '{"capability_id":"tool.motion.turn_left","input":{"speed":0,"duration":120}}' "200,400"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -440,7 +457,7 @@ PY
 
   api_call "Gate B" "contract_voice_timeout_positive" "POST" "/api/invoke" '{"capability_id":"tool.voice.recognize","input":{"timeout_s":1}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -455,7 +472,7 @@ PY
 
   api_call "Gate B" "contract_voice_timeout_negative" "POST" "/api/invoke" '{"capability_id":"tool.voice.recognize","input":{"timeout":1}}' "200,400"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -470,7 +487,7 @@ PY
 
   api_call "Gate B" "contract_infrared_output" "POST" "/api/invoke" '{"capability_id":"tool.sensor.infrared","input":{}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 payload = j.get("data") or j.get("result") or {}
@@ -494,7 +511,7 @@ PY
 
   api_call "Gate B" "negative_invalid_capability" "POST" "/api/invoke" '{"capability_id":"tool.invalid.not_exist","input":{}}' "200,400,500"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 raise SystemExit(0 if j.get("success") is False else 1)
@@ -508,7 +525,7 @@ PY
 
   api_call "Gate B" "negative_invalid_input" "POST" "/api/invoke" '{"capability_id":"tool.motion.forward","input":{"speed":101,"duration_ms":99999}}' "200,400"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -521,9 +538,24 @@ PY
     add_retest "修复输入边界校验后重跑 Gate B。"
   fi
 
+  api_call "Gate B" "negative_invalid_mode" "POST" "/api/mode" '{"mode":"turbo"}' "400,422"
+  rc=$?
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
+import json, sys
+j = json.load(open(sys.argv[1], encoding="utf-8"))
+blob = json.dumps(j, ensure_ascii=False).lower()
+raise SystemExit(0 if "mode" in blob else 1)
+PY
+  then
+    record "PASS" "Gate B" "negative_invalid_mode" "invalid mode rejected (json: $(rel_path "$API_OUT"))"
+  else
+    record "FAIL" "Gate B" "negative_invalid_mode" "invalid mode not rejected (json: $(rel_path "$API_OUT"))"
+    add_retest "修复 /api/mode 非法模式拒绝路径后重跑 Gate B。"
+  fi
+
   api_call "Gate B" "watchdog_stability" "GET" "/api/watchdog" "" "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 blob = json.dumps(j, ensure_ascii=False).lower()
@@ -548,7 +580,7 @@ else
   else
     api_call "Gate C" "button_physical_estop" "POST" "/api/invoke" '{"capability_id":"tool.button.status","input":{}}' "200"
     rc=$?
-    if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+    if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 payload = j.get("data") or j.get("result") or {}
@@ -568,7 +600,7 @@ PY
 
   api_call "Gate C" "sensor_infrared_hw" "POST" "/api/invoke" '{"capability_id":"tool.sensor.infrared","input":{}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 payload = j.get("data") or j.get("result") or {}
@@ -585,9 +617,9 @@ PY
     add_retest "修复 sensor.infrared 响应结构后重跑 Gate C。"
   fi
 
-  api_call "Gate C" "motion_turn_left_hw" "POST" "/api/invoke" '{"capability_id":"tool.motion.turn_left","input":{"speed":0,"duration_ms":120}}' "200"
+  api_call "Gate C" "motion_turn_left_hw" "POST" "/api/invoke" '{"capability_id":"tool.motion.turn_left","input":{"speed":0,"duration_ms":150}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 raise SystemExit(0 if j.get("success") is True else 1)
@@ -604,7 +636,7 @@ PY
 
   api_call "Gate C" "display_show_text_hw" "POST" "/api/invoke" '{"capability_id":"tool.display.show_text","input":{"text":"GateC display smoke"}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 raise SystemExit(0 if j.get("success") is True else 1)
@@ -621,7 +653,7 @@ PY
 
   api_call "Gate C" "voice_recognize_hw" "POST" "/api/invoke" '{"capability_id":"tool.voice.recognize","input":{"timeout_s":1}}' "200"
   rc=$?
-  if [ $rc -eq 0 ] && python3 - "$API_OUT" <<'PY'
+  if [ $rc -eq 0 ] && "$PYTHON_BIN" - "$API_OUT" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1], encoding="utf-8"))
 if j.get("success") is not True:

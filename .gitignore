@@ -58,6 +58,10 @@ docs/verification/runtime-check*
 
 # 额外虚拟环境
 .venv-gate/
+.hf-cache/
+
+# Local uv resolver output; dependency source of truth is modules/pyproject.toml.
+modules/uv.lock
 
 # 临时文件
 *.tmp

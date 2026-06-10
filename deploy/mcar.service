@@ -4,17 +4,18 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/root/mcar/core
-EnvironmentFile=/root/mcar/.ai_pet_env.systemd
-Environment=PATH=/root/mcar/.venv/bin:/root/.nvm/versions/node/v24.13.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WorkingDirectory=/root/mcar
+Environment=PATH=/root/mcar/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=VIRTUAL_ENV=/root/mcar/.venv
-ExecStart=/root/.nvm/versions/node/v24.13.1/bin/node dist/index.js
+Environment=MCAR_PROJECT_DIR=/root/mcar
+Environment=MCAR_ENV_FILE=/root/mcar/.ai_pet_env
+ExecStart=/bin/bash -lc 'set -a; [ -f "${MCAR_ENV_FILE}" ] && source "${MCAR_ENV_FILE}"; set +a; cd "${MCAR_PROJECT_DIR}/modules"; exec "${MCAR_PROJECT_DIR}/.venv/bin/python" -m robot_service'
 Restart=on-failure
 RestartSec=5
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
-# Ensure all child processes (Python modules) are killed on stop
+# Ensure child tasks are killed on stop
 KillMode=control-group
 KillSignal=SIGTERM
 TimeoutStopSec=10

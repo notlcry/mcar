@@ -13,13 +13,15 @@
 ```bash
 sudo systemctl start mcar
 # 或
-cd core && node dist/index.js
+./scripts/start_mcar.sh
+# 或
+.venv/bin/python -m robot_service --mock
 ```
 
 **预期**: 控制台/日志显示以下关键行：
-- `Orchestrator started`
-- 6 个模块注册: mock, voice, display, motion, sensor, button
-- `Web server listening on 0.0.0.0:8080`
+- `Uvicorn running on http://0.0.0.0:8080`
+- `/api/status` 返回 JSON
+- `registeredModules` 包含 mock, voice, display, motion, sensor, button
 
 ### T1.2 模块注册检查
 
@@ -35,7 +37,7 @@ curl -s http://localhost:8080/api/modules | python3 -m json.tool
 curl -s http://localhost:8080/api/status | python3 -m json.tool
 ```
 
-**预期**: 返回包含 `mode`, `health`, `risk_level`, `recent_actions` 的 JSON。
+**预期**: 返回包含 `mode`, `apiStatus`, `obstacle`, `registeredModules` 的 JSON。
 
 | 测试项 | 预期结果 | 通过 | 备注 |
 |--------|---------|------|------|
@@ -65,21 +67,21 @@ curl -s http://localhost:8080/api/capabilities | python3 -m json.tool
 
 **预期**: 列出所有能力（echo, timer, status, forward, backward, turn_left, turn_right, stop, ultrasonic, infrared, recognize, synthesize, show_expression, show_text, clear, button.status 等）。
 
-### T2.3 Agent 调用能力
+### T2.3 Agent 调用机器人工具
 
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"text": "测试一下 echo 功能，发送 hello"}' | python3 -m json.tool
+  -d '{"text": "看一下当前小车状态"}' | python3 -m json.tool
 ```
 
-**预期**: Agent 应调用 `tool.mock.echo`，回复中包含 echo 结果。
+**预期**: 配置 LLM key 时，Agent 通过 Pydantic AI 工具读取状态并回复；未配置 key 时返回未启用 LLM 的降级回复。
 
 | 测试项 | 预期结果 | 通过 | 备注 |
 |--------|---------|------|------|
 | T2.1 基本对话 | 有意义的回复 | [ ] | |
 | T2.2 能力列表 | 列出所有模块能力 | [ ] | |
-| T2.3 Agent 调用 | 成功调用 echo | [ ] | |
+| T2.3 Agent 调用 | 状态工具或 LLM 降级回复正常 | [ ] | |
 
 ---
 
@@ -131,7 +133,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
   | python3 -m json.tool
 ```
 
-**预期**: 返回 `{"success": true, "result": {"echo": "hello from api", ...}}`
+**预期**: 返回 `{"success": true, "data": {"echo": "hello from api", ...}}`
 
 ### T3.3 WebSocket 连接
 
@@ -157,7 +159,7 @@ wscat -c ws://localhost:8080/ws
 
 ## T4. 语音交互
 
-> 需要: USB 麦克风 + 扬声器 + PICOVOICE_ACCESS_KEY（可选，无则跳过唤醒词）
+> 需要: USB 麦克风 + 扬声器 + ASR provider 配置。唤醒词可用 `VOICE_WAKE_PROVIDER=openwakeword`，没有 provider 时跳过唤醒词。
 
 ### T4.1 TTS 合成
 
@@ -172,6 +174,42 @@ curl -s -X POST http://localhost:8080/api/invoke \
 
 ### T4.2 ASR 识别
 
+阿里云 Model Studio Fun-ASR Realtime 试测配置：
+
+```bash
+export VOICE_ASR_PROVIDER=aliyun_funasr_realtime
+export DASHSCOPE_API_KEY="your_dashscope_api_key"
+export DASHSCOPE_WEBSOCKET_URL="wss://dashscope.aliyuncs.com/api-ws/v1/inference"
+export ALIYUN_FUNASR_MODEL="fun-asr-realtime"
+export ALIYUN_FUNASR_HOTWORD_MODEL="paraformer-realtime-v1"
+# 可选：用 DashScope AsrPhraseManager 创建/更新运动命令热词资源
+python scripts/create_aliyun_asr_hotwords.py --env-file .ai_pet_env --write-env
+source .ai_pet_env
+```
+
+本机 Mac 离线 Qwen3-ASR 试测配置：
+
+```bash
+# 在 Mac 上启动本地 ASR 服务
+cd /Users/barry/github/mcar
+uv venv .qwen3-asr-venv
+source .qwen3-asr-venv/bin/activate
+uv pip install -e "modules[qwen3-asr-server]"
+python scripts/qwen3_asr_server.py --host 0.0.0.0 --port 8765
+
+# 在树莓派/机器人服务环境中指向 Mac 的局域网 IP
+export VOICE_ASR_PROVIDER=qwen3_asr_local
+export QWEN3_ASR_URL="http://<mac-lan-ip>:8765"
+```
+
+阿里云传统 NLS 试测配置：
+
+```bash
+export VOICE_ASR_PROVIDER=aliyun_nls
+export ALIYUN_NLS_APPKEY="your_appkey"
+export ALIYUN_NLS_TOKEN="your_token"
+```
+
 ```bash
 curl -s -X POST http://localhost:8080/api/invoke \
   -H "Content-Type: application/json" \
@@ -181,7 +219,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
 
 **预期**: 对着麦克风说话，返回识别的文本。
 
-### T4.3 唤醒词循环（如配置了 Porcupine）
+### T4.3 唤醒词循环（如配置了 wake word provider）
 
 ```bash
 # 启动唤醒词监听
@@ -193,6 +231,23 @@ curl -s -X POST http://localhost:8080/api/invoke \
 
 **预期**: 系统进入监听状态，说出唤醒词后触发 ASR→Agent→TTS 循环。
 
+常用体验参数：
+
+```bash
+export VOICE_ACK_ENABLED=false
+export VOICE_WAKE_PROMPT_ENABLED=true
+export VOICE_WAKE_PROMPT="wake"
+export VOICE_REPLY_MAX_CHARS=30
+export VOICE_FOLLOW_UP_ENABLED=true
+export VOICE_FOLLOW_UP_TIMEOUT_S=3
+export VOICE_FOLLOW_UP_MAX_TURNS=4
+export VOICE_PAUSE_THRESHOLD=0.45
+export VOICE_PHRASE_TIME_LIMIT=6
+export VOICE_TTS_CACHE_DIR="/root/mcar/data/tts_cache"
+```
+
+**预期**: 唤醒后播放本地提示音，不再用 TTS 反复说“我在”；LLM 回复会被压短，常用 TTS 文本第二次起直接走缓存。
+
 ### T4.4 停止唤醒词
 
 ```bash
@@ -202,12 +257,31 @@ curl -s -X POST http://localhost:8080/api/invoke \
   | python3 -m json.tool
 ```
 
+### T4.5 语音 E2E 延迟采集
+
+```bash
+python3 scripts/voice_e2e_probe.py \
+  --base-url http://localhost:8080 \
+  --rounds 2
+```
+
+树莓派远程验证时：
+
+```bash
+python3 scripts/voice_e2e_probe.py \
+  --base-url http://192.168.2.201:8080 \
+  --rounds 2
+```
+
+**预期**: 每轮输出 `prompt_ms/asr_ms/llm_ms/tts_ms/action_ms/total_ms`，并标出 ASR provider/mode、LLM model、TTS provider/model。运动指令优先产生 `voice.turn.command`；普通问答产生 `voice.turn.ok`。
+
 | 测试项 | 预期结果 | 通过 | 备注 |
 |--------|---------|------|------|
 | T4.1 TTS | 扬声器播放语音 | [ ] | |
 | T4.2 ASR | 返回识别文本 | [ ] | |
-| T4.3 唤醒词 | 唤醒后自动交互 | [ ] | 需 Porcupine key |
+| T4.3 唤醒词 | 唤醒后自动交互 | [ ] | 需 wake word provider |
 | T4.4 停止监听 | 成功停止 | [ ] | |
+| T4.5 E2E 延迟 | 输出 2 轮耗时表 | [ ] | 使用 `voice_e2e_probe.py` |
 
 ---
 
@@ -250,7 +324,7 @@ curl -s -X POST http://localhost:8080/api/invoke \
   | python3 -m json.tool
 ```
 
-**预期**: 冷却期内返回 `E_POLICY_*` 错误，操作被拒绝。
+**预期**: 冷却期内返回 `E_STATE_ESTOP` 错误，操作被拒绝。
 
 ### T5.4 冷却后恢复
 
@@ -543,7 +617,7 @@ curl -s -X POST http://localhost:8080/api/skills/self_check/execute | python3 -m
 curl -s -X POST http://localhost:8080/api/skills/night_mode/execute | python3 -m json.tool
 ```
 
-**预期**: 切换到夜间模式，降低显示亮度、限制运动速度。
+**预期**: 显示 sleeping 表情，并切换到 `mute` 模式。
 
 | 测试项 | 预期结果 | 通过 | 备注 |
 |--------|---------|------|------|
@@ -569,7 +643,7 @@ curl -s http://localhost:8080/api/health | python3 -m json.tool
 curl -s http://localhost:8080/api/watchdog | python3 -m json.tool
 ```
 
-**预期**: 返回各模块进程的 PID、重启次数、状态。
+**预期**: 返回各模块 in-process 状态，且没有 `permanentlyFailed=true`。
 
 ### T10.3 性能指标
 
@@ -577,7 +651,7 @@ curl -s http://localhost:8080/api/watchdog | python3 -m json.tool
 curl -s http://localhost:8080/api/metrics | python3 -m json.tool
 ```
 
-**预期**: 返回各操作的延迟百分位指标（p50/p95/p99）。需要先执行一些操作产生数据。
+**预期**: 返回 JSON 列表；当前 Python Robot Service 可为空列表。
 
 ### T10.4 审计日志
 
@@ -616,9 +690,9 @@ curl -s -X POST http://localhost:8080/api/rules/evaluate | python3 -m json.tool
 |--------|---------|------|------|
 | T10.1 健康检查 | 返回模块健康状态 | [ ] | |
 | T10.2 Watchdog | 返回进程状态 | [ ] | |
-| T10.3 指标 | 返回延迟百分位 | [ ] | |
+| T10.3 指标 | 返回 JSON 列表 | [ ] | |
 | T10.4 审计日志 | 返回操作记录 | [ ] | |
-| T10.5 会话回放 | 回放事件流 | [ ] | |
+| T10.5 会话回放 | 返回 events 列表 | [ ] | |
 | T10.6 规则引擎 | 规则状态/评估 | [ ] | |
 
 ---
@@ -630,7 +704,7 @@ curl -s -X POST http://localhost:8080/api/rules/evaluate | python3 -m json.tool
 | T1 基础启动 | 3 | | | |
 | T2 文本对话 | 3 | | | |
 | T3 Web 控制台 | 4 | | | |
-| T4 语音交互 | 4 | | | |
+| T4 语音交互 | 5 | | | |
 | T5 急停系统 | 4 | | | |
 | T6 安全策略 | 3 | | | |
 | T7 记忆系统 | 7 | | | |

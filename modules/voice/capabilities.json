@@ -4,7 +4,7 @@
     "name": "Voice Recognize",
     "type": "tool",
     "version": "1.0.0",
-    "description": "Recognize speech from microphone using cloud ASR (Google STT). Returns transcribed text.",
+    "description": "Recognize speech from microphone using the configured ASR provider. Returns transcribed text.",
     "risk_level": "READ_ONLY",
     "inputs_schema": {
       "type": "object",
@@ -104,11 +104,63 @@
     }
   },
   {
+    "capability_id": "tool.voice.play_prompt",
+    "name": "Play Local Voice Prompt",
+    "type": "tool",
+    "version": "1.0.0",
+    "description": "Play a short local prompt sound without cloud TTS, used for wake/listening feedback.",
+    "risk_level": "NORMAL",
+    "inputs_schema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "default": "wake",
+          "description": "Local prompt name, such as wake."
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs_schema": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "prompt": { "type": "string" },
+        "duration_ms": { "type": "integer" }
+      },
+      "required": ["ok"]
+    },
+    "constraints": {
+      "timeout_ms": 1000,
+      "concurrency": {
+        "max_in_flight": 1,
+        "mutex_group": "voice_output"
+      }
+    },
+    "required_state_predicates": [],
+    "permissions": {
+      "roles_allowed": ["user", "admin"],
+      "confirm_required": false,
+      "deny_when_muted": true
+    },
+    "idempotency": {
+      "mode": "NONE",
+      "key_fields": [],
+      "ttl_ms": 0
+    },
+    "observability": {
+      "audit_level": "MINIMAL",
+      "log_inputs": true,
+      "log_outputs": true,
+      "redaction": []
+    }
+  },
+  {
     "capability_id": "tool.voice.listen_start",
     "name": "Start Wake Word Detection",
     "type": "tool",
     "version": "1.0.0",
-    "description": "Start listening for wake word using Picovoice Porcupine. Emits voice.wake_word_detected event.",
+    "description": "Start listening for wake word using the configured provider. Emits voice.wake_word_detected event.",
     "risk_level": "READ_ONLY",
     "inputs_schema": {
       "type": "object",

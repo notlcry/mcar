@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-CORE_DIR="$ROOT_DIR/core"
 ENV_FILE="$ROOT_DIR/.ai_pet_env"
 PID_FILE="$ROOT_DIR/mcar.pid"
 LOG_DIR="$ROOT_DIR/logs"
@@ -10,12 +9,14 @@ STAMP="$(date +%Y-%m-%d_%H-%M-%S)"
 LOG_FILE="$LOG_DIR/mcar-$STAMP.log"
 
 VENV_DIR="${MCAR_VENV_DIR:-$ROOT_DIR/.venv}"
+if [[ ! -x "$VENV_DIR/bin/python" ]] && [[ -x "$ROOT_DIR/modules/.venv/bin/python" ]]; then
+  VENV_DIR="$ROOT_DIR/modules/.venv"
+fi
 if [[ ! -x "$VENV_DIR/bin/python" ]] && [[ -x "$ROOT_DIR/.venv-gate/bin/python" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-gate"
 fi
-
-if [[ ! -f "$CORE_DIR/dist/index.js" ]]; then
-  echo "[ERROR] core/dist/index.js not found. Run: cd $CORE_DIR && npm run build" >&2
+if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+  echo "[ERROR] Python venv not found. Run: ./deploy/install.sh" >&2
   exit 1
 fi
 
@@ -27,6 +28,7 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 PORT="${WEB_PORT:-8080}"
+HOST="${WEB_HOST:-0.0.0.0}"
 STATUS_URL="http://127.0.0.1:${PORT}/api/status"
 
 if [[ -f "$PID_FILE" ]]; then
@@ -48,9 +50,18 @@ elif command -v nice >/dev/null 2>&1; then
   start_prefix=(nice -n 10)
 fi
 
+mock_arg=()
+if [[ "${MCAR_MOCK:-}" == "1" || "${MCAR_MOCK:-}" == "true" ]]; then
+  mock_arg=(--mock)
+fi
+
 (
-  cd "$CORE_DIR"
-  PATH="$VENV_DIR/bin:$PATH" nohup "${start_prefix[@]}" node dist/index.js >>"$LOG_FILE" 2>&1 &
+  cd "$ROOT_DIR/modules"
+  nohup "${start_prefix[@]}" "$VENV_DIR/bin/python" -m robot_service \
+    --host "$HOST" \
+    --port "$PORT" \
+    "${mock_arg[@]}" \
+    >>"$LOG_FILE" 2>&1 &
   echo "$!" > "$PID_FILE"
 )
 
@@ -77,7 +88,7 @@ if [[ "$ready" -ne 1 ]]; then
   exit 1
 fi
 
-echo "[OK] mcar started (pid=$pid)"
+echo "[OK] mcar Python Robot Service started (pid=$pid)"
 echo "[OK] status: $STATUS_URL"
 echo "[OK] pid file: $PID_FILE"
 echo "[OK] log file: $LOG_FILE"

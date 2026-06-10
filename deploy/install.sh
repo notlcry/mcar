@@ -17,18 +17,7 @@ echo "=== mcar Installation ==="
 echo "Project directory: $PROJECT_DIR"
 echo ""
 
-# ─── 1. Check Node.js ──────────────────────────────────
-if ! command -v node &>/dev/null; then
-  echo "ERROR: Node.js not found."
-  echo "Install with:"
-  echo "  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
-  echo "  sudo apt install -y nodejs"
-  exit 1
-fi
-NODE_VER="$(node --version)"
-echo "Node.js: $NODE_VER"
-
-# ─── 2. Check Python3 ─────────────────────────────────
+# ─── 1. Check Python3 ─────────────────────────────────
 if ! command -v python3 &>/dev/null; then
   echo "ERROR: Python3 not found."
   echo "Install with: sudo apt install -y python3 python3-pip python3-venv"
@@ -36,11 +25,11 @@ if ! command -v python3 &>/dev/null; then
 fi
 echo "Python3: $(python3 --version)"
 
-# ─── 3. Check system dependencies ─────────────────────
+# ─── 2. Check system dependencies ─────────────────────
 echo ""
 echo "--- Checking system dependencies ---"
 MISSING_PKGS=()
-SYS_PKGS=(libzmq3-dev portaudio19-dev libjpeg-dev i2c-tools python3-pip python3-venv)
+SYS_PKGS=(portaudio19-dev libjpeg-dev i2c-tools python3-pip python3-venv)
 
 for pkg in "${SYS_PKGS[@]}"; do
   if ! dpkg -s "$pkg" &>/dev/null; then
@@ -63,7 +52,7 @@ else
   echo "All system packages present."
 fi
 
-# ─── 4. Check I2C enabled ─────────────────────────────
+# ─── 3. Check I2C enabled ─────────────────────────────
 echo ""
 echo "--- Checking I2C ---"
 if [ -e /dev/i2c-1 ]; then
@@ -78,41 +67,28 @@ else
   echo "  Then reboot."
 fi
 
-# ─── 5. Install Node.js dependencies ──────────────────
-echo ""
-echo "--- Installing Node.js dependencies ---"
-cd "$PROJECT_DIR/core"
-npm install --production
-
-# ─── 6. Build TypeScript ──────────────────────────────
-echo ""
-echo "--- Building TypeScript ---"
-npm run build 2>/dev/null || npx tsc
-echo "TypeScript build complete."
-
-# ─── 7. Install Python dependencies ──────────────────
+# ─── 4. Install Python dependencies ──────────────────
 echo ""
 echo "--- Installing Python dependencies ---"
+python3 -m venv "$PROJECT_DIR/.venv"
+"$PROJECT_DIR/.venv/bin/python" -m pip install --upgrade pip
 cd "$PROJECT_DIR/modules"
 
 # Detect platform for correct extras
 if [ -f /proc/device-tree/model ] && grep -qi "raspberry" /proc/device-tree/model 2>/dev/null; then
   echo "Raspberry Pi detected — installing all hardware extras."
-  pip3 install -e ".[hw,voice,display,dev]" --break-system-packages 2>/dev/null \
-    || pip3 install -e ".[hw,voice,display,dev]" 2>/dev/null \
-    || pip3 install -e ".[dev]"
+  "$PROJECT_DIR/.venv/bin/python" -m pip install -e ".[hw,voice,display,dev]"
 else
   echo "Non-Pi platform — installing dev extras only (mock mode)."
-  pip3 install -e ".[dev]" --break-system-packages 2>/dev/null \
-    || pip3 install -e ".[dev]"
+  "$PROJECT_DIR/.venv/bin/python" -m pip install -e ".[dev]"
 fi
 
-# ─── 8. Create data directory ─────────────────────────
+# ─── 5. Create data directory ─────────────────────────
 echo ""
 echo "--- Creating data directory ---"
 mkdir -p "$PROJECT_DIR/data"
 
-# ─── 9. Check environment file ────────────────────────
+# ─── 6. Check environment file ────────────────────────
 if [ ! -f "$PROJECT_DIR/.ai_pet_env" ]; then
   echo ""
   echo "WARNING: .ai_pet_env not found."
@@ -121,24 +97,24 @@ if [ ! -f "$PROJECT_DIR/.ai_pet_env" ]; then
   echo "  nano $PROJECT_DIR/.ai_pet_env"
 fi
 
-# ─── 10. Post-install verification ────────────────────
+# ─── 7. Post-install verification ────────────────────
 echo ""
 echo "--- Verifying installation ---"
 VERIFY_OK=true
 
-# Check TypeScript build output
-if [ -f "$PROJECT_DIR/core/dist/index.js" ]; then
-  echo "[OK] TypeScript build output exists"
+# Check Python Robot Service importable
+if "$PROJECT_DIR/.venv/bin/python" -c "import robot_service; print('  robot_service import ok')" 2>/dev/null; then
+  echo "[OK] robot_service importable"
 else
-  echo "[FAIL] core/dist/index.js not found"
+  echo "[FAIL] robot_service not importable"
   VERIFY_OK=false
 fi
 
-# Check Python module importable
-if python3 -c "import zmq; print(f'  pyzmq {zmq.__version__}')" 2>/dev/null; then
-  echo "[OK] pyzmq importable"
+# Check FastAPI importable
+if "$PROJECT_DIR/.venv/bin/python" -c "import fastapi; print(f'  fastapi {fastapi.__version__}')" 2>/dev/null; then
+  echo "[OK] fastapi importable"
 else
-  echo "[FAIL] pyzmq not importable"
+  echo "[FAIL] fastapi not importable"
   VERIFY_OK=false
 fi
 
@@ -162,15 +138,17 @@ if [ "$VERIFY_OK" = false ]; then
   echo "WARNING: Some verification checks failed. Review the errors above."
 fi
 
-# ─── 11. Install systemd service (optional) ──────────
+# ─── 8. Install systemd service (optional) ──────────
 echo ""
 read -p "Install systemd service for auto-start? [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   # Update WorkingDirectory in service file
   sed "s|WorkingDirectory=.*|WorkingDirectory=$PROJECT_DIR|g" "$SERVICE_FILE" |
-  sed "s|EnvironmentFile=.*|EnvironmentFile=$PROJECT_DIR/.ai_pet_env|g" |
-  sed "s|ExecStart=.*|ExecStart=$(which node) $PROJECT_DIR/core/dist/index.js|g" |
+  sed "s|Environment=PATH=.*|Environment=PATH=$PROJECT_DIR/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin|g" |
+  sed "s|Environment=VIRTUAL_ENV=.*|Environment=VIRTUAL_ENV=$PROJECT_DIR/.venv|g" |
+  sed "s|Environment=MCAR_PROJECT_DIR=.*|Environment=MCAR_PROJECT_DIR=$PROJECT_DIR|g" |
+  sed "s|Environment=MCAR_ENV_FILE=.*|Environment=MCAR_ENV_FILE=$PROJECT_DIR/.ai_pet_env|g" |
   sed "s|User=.*|User=$(whoami)|g" |
   sed "s|Group=.*|Group=$(id -gn)|g" |
   sudo tee /etc/systemd/system/mcar.service > /dev/null
@@ -182,7 +160,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
   echo "View logs:  journalctl -u mcar -f"
 else
   echo "Skipped systemd installation."
-  echo "Start manually: cd $PROJECT_DIR/core && node dist/index.js"
+  echo "Start manually: $PROJECT_DIR/.venv/bin/python -m robot_service --mock"
 fi
 
 echo ""

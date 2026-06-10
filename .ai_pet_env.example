@@ -1,17 +1,46 @@
 # mcar 环境变量配置文件
 # 复制此文件为 .ai_pet_env 并填入你的实际 API 密钥
 
-# ─── 必需 ─────────────────────────────────────────────────
+# ─── 可选：LLM API 密钥 ─────────────────────────────────
 # Google Gemini API 密钥
 # 获取地址: https://makersuite.google.com/app/apikey
 GEMINI_API_KEY="your_gemini_api_key_here"
+# OPENAI_API_KEY="your_openai_api_key_here"
+# ANTHROPIC_API_KEY="your_anthropic_api_key_here"
+# OPENROUTER_API_KEY="your_openrouter_api_key_here"
 
 # ─── 可选：LLM 配置 ──────────────────────────────────────
 # LLM_PROVIDER="google"
 # LLM_MODEL="gemini-2.5-flash"
+# 也可直接写 Pydantic AI 模型名，例如:
+# LLM_MODEL="openai:gpt-5.2"
+# OpenAI-compatible proxy:
+# LLM_PROVIDER="openai-compatible"
+# LLM_MODEL="gpt-5.5"
+# LLM_BASE_URL="https://proxy.198437.xyz/v1"
+# PROXY_API_KEY="your_proxy_api_key_here"
+# 阿里云百炼 OpenAI-compatible:
+# LLM_PROVIDER="openai-compatible"
+# LLM_MODEL="qwen3.6-flash"
+# LLM_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+# DASHSCOPE_API_KEY="your_dashscope_api_key_here"
+# 默认不继承系统 HTTP(S)/SOCKS 代理；需要继承时设为 true
+# LLM_HTTP_TRUST_ENV=false
 
 # ─── 可选：语音 ──────────────────────────────────────────
-# Picovoice 访问密钥（自定义唤醒词）
+# 唤醒词 provider，默认 auto；树莓派建议先用 openwakeword，规避 Picovoice 激活问题
+# VOICE_WAKE_PROVIDER="openwakeword"
+# 可选：openWakeWord 内置模型名或自定义 .tflite/.onnx 模型路径
+# 首次使用内置模型需下载资源: python -c 'from openwakeword.utils import download_models; download_models(["hey_jarvis_v0.1"])'
+# OPENWAKEWORD_MODEL_NAME="hey_jarvis"
+# OPENWAKEWORD_MODEL_PATH="/root/mcar/wake_words/wally.onnx"
+# 可选：灵敏度阈值 0.0~1.0，越低越容易触发，默认 0.5
+# OPENWAKEWORD_THRESHOLD=0.5
+# 可选：onnx|tflite，默认 tflite
+# OPENWAKEWORD_INFERENCE_FRAMEWORK="onnx"
+# 可选：每次触发后的防抖时间，默认 1 秒
+# OPENWAKEWORD_DEBOUNCE_S=1.0
+# Picovoice 访问密钥（Porcupine provider）
 # 获取地址: https://console.picovoice.ai/
 # PICOVOICE_ACCESS_KEY="your_picovoice_access_key_here"
 # 可选：指定自定义唤醒词模型（.ppn）
@@ -30,14 +59,81 @@ GEMINI_API_KEY="your_gemini_api_key_here"
 # VOICE_WAKE_CHANNEL_MODE="dominant"
 # 可选：唤醒音频增益（0.1~4.0），默认 1.0
 # VOICE_WAKE_AUDIO_GAIN=1.2
+# 可选：ASR provider，auto 优先级:
+# 阿里云 Fun-ASR Realtime → 阿里云 NLS → 本机 Qwen3-ASR → Whisper → Google STT
+# VOICE_ASR_PROVIDER="auto"
+# 支持: auto|aliyun_funasr_realtime|aliyun_nls|qwen3_asr_local|whisper|google
+# 阿里云 Model Studio Fun-ASR Realtime（配置 DASHSCOPE_API_KEY 后 auto 优先选择）
+# DASHSCOPE_API_KEY="your_dashscope_api_key_here"
+# DASHSCOPE_WEBSOCKET_URL="wss://dashscope.aliyuncs.com/api-ws/v1/inference"
+# ALIYUN_FUNASR_MODEL="fun-asr-realtime"
+# ALIYUN_FUNASR_SAMPLE_RATE=16000
+# ALIYUN_FUNASR_CHUNK_SIZE=3200
+# ALIYUN_FUNASR_CHUNK_INTERVAL_S=0.1
+# ALIYUN_FUNASR_MAX_SENTENCE_SILENCE_MS=800
+# ALIYUN_FUNASR_SEMANTIC_PUNCTUATION=false
+# ALIYUN_FUNASR_LANGUAGE_HINT="zh"
+# 可选：百炼 ASR 热词资源 ID，用 AsrPhraseManager/VocabularyService 预先创建
+# ALIYUN_FUNASR_HOTWORD_MODEL="paraformer-realtime-v1"
+# ALIYUN_FUNASR_PHRASE_ID="your_asr_phrase_id"
+# 创建/更新运动命令热词资源:
+# python scripts/create_aliyun_asr_hotwords.py --env-file .ai_pet_env --write-env
+# 阿里云 NLS 实时语音识别（传统 NLS）
+# ALIYUN_NLS_APPKEY="your_aliyun_nls_appkey_here"
+# ALIYUN_NLS_TOKEN="your_aliyun_nls_token_here"
+# ALIYUN_NLS_URL="wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
+# ALIYUN_NLS_SAMPLE_RATE=16000
+# 可选：本机 Mac Qwen3-ASR HTTP 服务地址
+# QWEN3_ASR_URL="http://<mac-lan-ip>:8765"
+# QWEN3_ASR_TIMEOUT_S=300
+# QWEN3_ASR_LANGUAGE="Chinese"
+# 可选：局域网 Whisper HTTP 服务地址（作为 fallback 或显式 provider）
+# WHISPER_URL="http://127.0.0.1:9000"
+# 可选：语音交互体验/延迟
+# 唤醒后播放本地短提示音，不走云端 TTS，用来提示“现在可以说话”
+# VOICE_WAKE_PROMPT_ENABLED=true
+# VOICE_WAKE_PROMPT="wake"
+# VOICE_WAKE_PROMPT_DURATION_MS=120
+# VOICE_WAKE_PROMPT_FREQUENCY_HZ=880
+# VOICE_WAKE_PROMPT_VOLUME=0.35
+# VOICE_COMMAND_TIMEOUT_S=30
+# 可选：旧的 TTS ack。默认关闭，避免每轮唤醒都走云端 TTS 说“我在”
+# VOICE_ACK_ENABLED=true
+# VOICE_ACK_TEXT="我在。"
+# 语音回复最长字数，避免 TTS 播放太久
+# VOICE_REPLY_MAX_CHARS=80
+# 可选：回复后继续免唤醒监听后续命令/问题
+# VOICE_FOLLOW_UP_ENABLED=true
+# VOICE_FOLLOW_UP_TIMEOUT_S=30
+# VOICE_FOLLOW_UP_MAX_TURNS=50
+# 可选：低延迟 ASR 流式 VAD。需要较长空闲等待时开启，避免 recorded 模式被底噪提前截断
+# VOICE_STREAMING_ASR_ENABLED=true
+# VOICE_POST_WAKE_NO_SPEECH_TIMEOUT_S=30
+# VOICE_STREAM_RMS_THRESHOLD=800
+# ASR 录音 VAD 参数：说话结束后静音多久截断，以及单句最长录音时长
+# VOICE_PAUSE_THRESHOLD=0.45
+# VOICE_PHRASE_TIME_LIMIT=6
+# Edge TTS 音频缓存目录；常用短句第二次起直接播放缓存
+# VOICE_TTS_CACHE_DIR="/root/mcar/data/tts_cache"
+# 可选：阿里云百炼 Qwen-TTS Realtime（WebSocket）
+# VOICE_TTS_PROVIDER="aliyun_qwen_tts_realtime"
+# VOICE_ALIYUN_TTS_MODEL="qwen3-tts-flash-realtime"
+# VOICE_ALIYUN_TTS_WEBSOCKET_URL="wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
+# VOICE_ALIYUN_TTS_VOICE="Cherry"
+# VOICE_ALIYUN_TTS_VOLUME=50
+# 默认不让 Qwen-TTS WebSocket 继承 service 里的 HTTP(S)/SOCKS 代理
+# VOICE_ALIYUN_TTS_DISABLE_PROXY=true
+# 可选：USB/独立输出声卡 mixer 音量；例如 USB Audio Device 为 card 4, PCM 26
+# VOICE_OUTPUT_DEVICE="plughw:4,0"
+# VOICE_OUTPUT_ALSA_CARD=4
+# VOICE_OUTPUT_MIXER="PCM"
+# VOICE_OUTPUT_VOLUME=26
+# ReSpeaker 模拟 OUT 底噪较大时降低 Playback 增益；0~255，留空则不改
+# VOICE_PLAYBACK_VOLUME=180
 
 # ─── 可选：Web 服务器 ─────────────────────────────────────
 # WEB_PORT=8080
 # WEB_HOST="0.0.0.0"
-
-# ─── 可选：IPC 端点 ──────────────────────────────────────
-# IPC_ROUTER="ipc:///tmp/mcar-router.sock"
-# IPC_PUB="ipc:///tmp/mcar-pub.sock"
 
 # ─── 可选：急停按钮 ─────────────────────────────────────
 # GPIO 引脚号（BCM 编号），默认 17
@@ -47,3 +143,5 @@ GEMINI_API_KEY="your_gemini_api_key_here"
 
 # ─── 可选：调试 ──────────────────────────────────────────
 # DEBUG=1
+# 无硬件 mock 模式
+# MCAR_MOCK=1

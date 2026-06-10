@@ -1,9 +1,10 @@
 """Voice module — speech recognition, TTS, wake word detection.
 
 Capabilities:
-  - tool.voice.recognize    — cloud ASR (Google STT)
+  - tool.voice.recognize    — provider based ASR
   - tool.voice.synthesize   — Edge TTS (async, free, Chinese support)
-  - tool.voice.listen_start — start wake word detection (Picovoice Porcupine)
+  - tool.voice.play_prompt  — play local prompt sounds
+  - tool.voice.listen_start — start wake word detection
   - tool.voice.listen_stop  — stop wake word detection
 """
 
@@ -42,10 +43,11 @@ class VoiceModule(ModuleBase):
         return {
             "module_id": "voice",
             "module_version": "1.0.0",
-            "description": "Voice I/O: ASR (Google STT), TTS (Edge TTS), wake word (Porcupine)",
+            "description": "Voice I/O: provider ASR, TTS (Edge TTS), wake word provider",
             "capabilities": [
                 "tool.voice.recognize",
                 "tool.voice.synthesize",
+                "tool.voice.play_prompt",
                 "tool.voice.listen_start",
                 "tool.voice.listen_stop",
             ],
@@ -69,6 +71,10 @@ class VoiceModule(ModuleBase):
             voice = params.get("voice", "zh-CN-XiaoxiaoNeural")
             rate = params.get("rate", "+0%")
             return await self._driver.synthesize(text=text, voice=voice, rate=rate)
+
+        if capability_id == "tool.voice.play_prompt":
+            prompt = params.get("prompt", "wake")
+            return await self._driver.play_prompt(prompt=prompt)
 
         if capability_id == "tool.voice.listen_start":
             return await self._driver.listen_start()

@@ -13,7 +13,7 @@
 ```text
 请在当前仓库执行 mcar 发布前真机验收，按 Gate P/A/B/C 顺序执行并输出 Go/No-Go 报告。
 硬性要求：
-1) 契约优先级：modules/*/capabilities.json > core/src/web/server.ts > docs/TESTING.md。
+1) 契约优先级：modules/*/capabilities.json > modules/robot_service/api.py > docs/TESTING.md。
 2) 参数/字段必须使用：
    - /api/chat: text
    - tool.motion.*: duration_ms
@@ -29,15 +29,15 @@
 
 ## 4. 执行顺序（你可口头监督）
 1. Gate P（环境）
-- 检查 `node -v`、`python3 -V`、`.ai_pet_env`、关键 key。
+- 检查 `python3 -V`、`.ai_pet_env`、关键 key。
 - 推荐 Python 3.12：`uv venv .venv-py312 --python 3.12`，并激活。
 
 2. Gate A（自动化）
-- `cd core && npm install && npm run build && npm test && npm run test:coverage`
 - `cd modules && uv pip install --python "$(command -v python)" ".[dev]" && pytest -q`
+- `python -m compileall modules/robot_service`
 
 3. Gate B（服务+契约）
-- 启动服务：`cd core && node dist/index.js`
+- 启动服务：`cd modules && python -m robot_service --mock`
 - 验证核心 API：`/api/status /api/modules /api/capabilities /api/health /api/watchdog /api/metrics /api/audit /api/sessions /api/rules/status /api/chat /api/invoke /api/stop /api/mode`
 - 负向用例必须覆盖：无效 capability、越界 `duration_ms`、非法 mode。
 

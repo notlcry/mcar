@@ -178,9 +178,11 @@ async function refreshStatus() {
     document.getElementById('s-session').textContent = s.session;
     document.getElementById('s-mode').textContent = s.mode;
     document.getElementById('s-api').textContent = s.apiStatus;
-    document.getElementById('s-battery').textContent = Math.round(s.batteryLevel * 100) + '%';
+    const battery = s.battery ?? s.batteryLevel ?? 0;
+    const estopLocked = s.estopLocked ?? s.safetyLock ?? false;
+    document.getElementById('s-battery').textContent = Math.round(battery * 100) + '%';
     document.getElementById('s-obstacle').textContent = s.obstacle ? 'Yes' : 'No';
-    document.getElementById('s-lock').textContent = s.safetyLock ? 'LOCKED' : 'Off';
+    document.getElementById('s-lock').textContent = estopLocked ? 'LOCKED' : 'Off';
     updateModeButtons(s.mode);
   } catch (e) { console.error('Status error:', e); }
 }
@@ -372,7 +374,9 @@ function addAuditEntry(entry) {
   const div = document.createElement('div');
   div.className = 'audit-entry';
   const ts = new Date(entry.timestamp || Date.now()).toLocaleTimeString();
-  div.textContent = ts + ' [' + (entry.event || entry.type || '') + '] ' + JSON.stringify(entry.data || {}).slice(0, 100);
+  const eventType = entry.event_type || entry.event || entry.type || '';
+  const payload = entry.payload || entry.data || {};
+  div.textContent = ts + ' [' + eventType + '] ' + JSON.stringify(payload).slice(0, 100);
   el.prepend(div);
   while (el.children.length > 100) el.removeChild(el.lastChild);
 }

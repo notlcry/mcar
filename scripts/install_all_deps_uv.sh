@@ -15,11 +15,6 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "ERROR: npm not found in PATH" >&2
-  exit 1
-fi
-
 # Keep process priority lower to reduce chance of starving SSH/network.
 # Ensure we only re-exec once to avoid recursion loops.
 if [[ "${MCAR_DEPS_CHILD:-0}" != "1" ]]; then
@@ -36,7 +31,6 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 echo "[INFO] root: $ROOT_DIR"
 echo "[INFO] log : $LOG_FILE"
 echo "[INFO] uv  : $(uv --version)"
-echo "[INFO] npm : $(npm -v)"
 
 echo "[STEP] Create/refresh venv: $VENV_DIR"
 if [[ "${MCAR_VENV_CLEAR:-0}" == "1" ]]; then
@@ -48,18 +42,29 @@ else
   uv venv "$VENV_DIR"
 fi
 
-echo "[STEP] Install Node dependencies (core)"
-cd "$ROOT_DIR/core"
-npm install --no-audit --no-fund
-
-echo "[STEP] Install Python dependencies (modules: hw,voice,display,dev)"
+echo "[STEP] Install Python Robot Service dependencies (hw,voice,display,dev)"
 cd "$ROOT_DIR/modules"
 uv pip install --python "$VENV_DIR/bin/python" -e ".[hw,voice,display,dev]"
 
 echo "[STEP] Verify key Python imports in venv"
 "$VENV_DIR/bin/python" - <<'PY'
 import importlib
-mods = ["zmq", "RPi.GPIO", "smbus2", "speech_recognition", "luma.oled", "edge_tts", "pvporcupine", "pygame"]
+mods = [
+    "fastapi",
+    "jsonschema",
+    "pydantic",
+    "robot_service",
+    "uvicorn",
+    "zmq",
+    "RPi.GPIO",
+    "smbus2",
+    "speech_recognition",
+    "luma.oled",
+    "edge_tts",
+    "openwakeword.model",
+    "pvporcupine",
+    "pygame",
+]
 failed = []
 for m in mods:
     try:

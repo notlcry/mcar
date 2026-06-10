@@ -2,7 +2,7 @@
 
 Release gate input for Gate B/C. Validate in this priority order:
 1. `modules/*/capabilities.json`
-2. `core/src/web/server.ts`
+2. `modules/robot_service/api.py` and `modules/robot_service/models.py`
 3. `docs/TESTING.md`
 
 ## Core API Routes (must be reachable)
@@ -17,6 +17,7 @@ Release gate input for Gate B/C. Validate in this priority order:
 - `GET /api/rules/status`
 - `POST /api/chat`
 - `POST /api/invoke`
+- `POST /api/voice/run_once`
 - `POST /api/stop`
 - `POST /api/mode`
 
@@ -27,6 +28,8 @@ Release gate input for Gate B/C. Validate in this priority order:
   - use `duration_ms` (NOT `duration`)
 - Voice ASR (`tool.voice.recognize`):
   - use `timeout_s` (NOT `duration`)
+- Voice E2E probe (`POST /api/voice/run_once`) payload:
+  - use optional `source` to tag audit events
 - Infrared sensor (`tool.sensor.infrared`) output keys:
   - `left_obstacle`, `right_obstacle`
 

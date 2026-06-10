@@ -15,13 +15,13 @@
 
 ### 1.1 逻辑组件
 
-* **Orchestrator（编排核心）**
+* **Robot Service（编排核心）**
 
   * 负责：会话状态机、路由输入、调用 Agent、执行能力、写日志、更新记忆
 * **Agent Runtime（LLM 适配与决策）**
 
-  * 负责：将用户输入 + 上下文 + 能力清单 → 产出（文本回复 + tool/skill 调用计划）
-  * 可替换：Gemini/其他模型
+  * 负责：通过 Pydantic AI 将用户输入 + 上下文 + 能力清单 → 文本回复或 typed tool call
+  * 可替换：Gemini/OpenAI/Anthropic/OpenRouter/Ollama 等 provider
 * **Capability Registry（能力注册表）**
 
   * 负责：加载/管理模块、汇总能力声明、提供能力发现接口
@@ -43,15 +43,15 @@
 
 ### 1.2 物理部署（进程边界建议）
 
-* `core`：Orchestrator + Registry + Executor + Policy + Memory + State（一个主进程）
-* `modules/*`：能力模块（可同进程加载或独立进程 RPC；首期建议“独立进程优先”用于隔离）
-* `ui`（可选）：Web 控制台/调试台
+* `modules/robot_service`：FastAPI + Pydantic AI + Registry + Safety + Memory + Audit + Skills + Rules（一个主进程）
+* `modules/*`：Python 能力模块，当前由 Robot Service 直接加载；保留清晰模块边界，便于后续拆成独立进程
+* `core/src/web/public`：Web 控制台静态资产；当前部署不再依赖 TypeScript core/Node runtime
 
 > 设计上支持两种形态：
 >
 > * **In-process 插件**（性能好，隔离弱）
 > * **Out-of-process 模块服务**（隔离强，稍复杂）
->   首期建议把“危险硬件”模块独立进程化，其他可同进程。
+>   当前 MVP 选择 in-process Python service；危险硬件仍必须实现 `stop()` 并接受安全门禁。
 
 ---
 
@@ -59,15 +59,15 @@
 
 ### 2.1 语音交互主链路
 
-1. Audio In → ASR（云）→ `UserText`
-2. Orchestrator 读取：Session Memory + 注入的 Long-term/Device Memory + State Snapshot + Capability List
-3. Agent Runtime 调用模型 → 输出：
+1. Audio In → ASR（云端或局域网本机 provider）→ `UserText`
+2. Robot Service 读取：Memory + State Snapshot + Capability List
+3. RobotAgent 调用 Pydantic AI provider → 输出：
 
    * `assistant_text`（可选）
    * `action_plan`（0..N 个工具调用/技能调用/澄清问题）
-4. Orchestrator 通过 Safety Policy Engine 逐条审批 action_plan
-5. Executor 调用对应模块执行 → 返回结果
-6. Orchestrator 汇总结果：
+4. Robot Service 通过 SafetyRouter/ExecutionGuards 审批 action_plan
+5. Robot Service 调用对应 Python 模块执行 → 返回结果
+6. Robot Service 汇总结果：
 
    * 生成最终回复（文本→TTS）
    * 写审计日志

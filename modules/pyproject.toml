@@ -8,7 +8,12 @@ version = "0.1.0"
 description = "mcar Agent robot system - Python hardware modules"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.115.0",
+    "jsonschema>=4.23.0",
+    "pydantic>=2.9.0",
+    "pydantic-ai-slim[anthropic,google,openai]>=1.0.0",
     "pyzmq>=26.0.0",
+    "uvicorn>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -22,11 +27,20 @@ hw = [
     "smbus2>=0.5.0",
 ]
 voice = [
+    "alibaba-nls-python-sdk>=1.0.2",
+    "dashscope>=1.23.1",
     "SpeechRecognition>=3.10.0",
     "edge-tts>=6.1.0",
+    "openwakeword>=0.6.0",
     "pvporcupine>=3.0.0",
     "pygame>=2.5.0",
     "pyaudio>=0.2.14",
+]
+qwen3-asr-server = [
+    "fastapi>=0.115.0",
+    "python-multipart>=0.0.9",
+    "qwen-asr>=0.0.6",
+    "uvicorn>=0.32.0",
 ]
 display = [
     "luma.oled>=3.13.0",
@@ -38,7 +52,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["common", "mock", "voice", "motion", "sensor", "display", "button"]
+include = ["common", "mock", "voice", "motion", "sensor", "display", "button", "robot_service"]
 exclude = ["tests", "tests.*", "template", "template.*"]
 
 [tool.pytest.ini_options]

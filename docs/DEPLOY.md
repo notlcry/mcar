@@ -1,6 +1,6 @@
 # mcar 树莓派部署指南
 
-从零开始在 Raspberry Pi 上部署 mcar 机器人系统。
+从零开始在 Raspberry Pi 上部署 mcar Python Robot Service。
 
 ## 1. 硬件清单
 
@@ -113,12 +113,12 @@ sudo raspi-config
 sudo reboot
 ```
 
-### 3.3 安装 Node.js 18+
+### 3.3 安装 Python 3.12 与 venv
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
-node --version  # 应显示 v18.x.x 或更高
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv
+python3 --version
 ```
 
 ### 3.4 安装系统依赖
@@ -128,7 +128,6 @@ sudo apt update
 sudo apt install -y \
   git \
   python3 python3-pip python3-venv \
-  libzmq3-dev \
   portaudio19-dev \
   libjpeg-dev \
   i2c-tools
@@ -162,7 +161,29 @@ cd mcar
 # 2. 配置环境变量
 cp .ai_pet_env.example .ai_pet_env
 nano .ai_pet_env
-# 必填: GEMINI_API_KEY="your_key_here"
+# 可选: GEMINI_API_KEY="your_key_here"
+# 未配置时硬件/API 仍可用，/api/chat 会返回 LLM 降级回复
+# LLM proxy 可选:
+#   LLM_PROVIDER=openai-compatible
+#   LLM_MODEL=gpt-5.5
+#   LLM_BASE_URL=https://proxy.198437.xyz/v1
+#   PROXY_API_KEY=your_proxy_api_key
+#   LLM_HTTP_TRUST_ENV=false
+# 语音 ASR 可选:
+#   aliyun_funasr_realtime + DASHSCOPE_API_KEY
+#   python scripts/create_aliyun_asr_hotwords.py --env-file .ai_pet_env --write-env
+#   qwen3_asr_local + QWEN3_ASR_URL=http://<mac-lan-ip>:8765
+#   aliyun_nls + ALIYUN_NLS_APPKEY/TOKEN
+# 语音体验可选:
+#   VOICE_ACK_ENABLED=false
+#   VOICE_WAKE_PROMPT_ENABLED=true
+#   VOICE_WAKE_PROMPT=wake
+#   VOICE_REPLY_MAX_CHARS=30
+#   VOICE_FOLLOW_UP_ENABLED=true
+#   VOICE_FOLLOW_UP_TIMEOUT_S=3
+#   VOICE_FOLLOW_UP_MAX_TURNS=4
+#   VOICE_PAUSE_THRESHOLD=0.45
+#   VOICE_PHRASE_TIME_LIMIT=6
 
 # 3. 运行安装脚本
 chmod +x deploy/install.sh
@@ -170,11 +191,11 @@ chmod +x deploy/install.sh
 ```
 
 安装脚本会自动：
-- 检查 Node.js 和 Python3
+- 检查 Python3
 - 检测并安装缺失的系统依赖
 - 检查 I2C 是否启用
-- 安装 Node.js 依赖并编译 TypeScript
-- 安装 Python 依赖（树莓派上自动安装硬件 extras）
+- 创建 `.venv`
+- 安装 Python Robot Service 依赖（树莓派上自动安装硬件 extras）
 - 创建 data/ 目录
 - 可选安装 systemd 服务
 
@@ -188,7 +209,9 @@ sudo systemctl start mcar
 sudo systemctl status mcar
 
 # 或手动方式
-cd core && node dist/index.js
+./scripts/start_mcar.sh
+# 或
+.venv/bin/python -m robot_service --mock
 ```
 
 ### 5.2 检查状态
@@ -210,10 +233,44 @@ curl -s http://localhost:8080/api/health | python3 -m json.tool
 # 发送文本消息
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "你好"}' | python3 -m json.tool
+  -d '{"text": "你好"}' | python3 -m json.tool
 ```
 
-### 5.4 查看日志
+### 5.4 语音链路增量部署
+
+Mac 上本地改完语音链路后，可用下面的脚本同步到树莓派、执行远端 smoke、重启服务，并自动跑 2 轮 E2E 延迟采集：
+
+```bash
+./scripts/deploy_pi_voice_update.sh
+```
+
+常用覆盖项：
+
+```bash
+PI_HOST=root@192.168.2.201 \
+PI_DIR=/root/mcar \
+BASE_URL=http://192.168.2.201:8080 \
+ROUNDS=2 \
+./scripts/deploy_pi_voice_update.sh
+```
+
+只检查将执行的命令：
+
+```bash
+./scripts/deploy_pi_voice_update.sh --dry-run
+```
+
+### 5.5 语音 E2E 延迟验证
+
+```bash
+python3 scripts/voice_e2e_probe.py \
+  --base-url http://localhost:8080 \
+  --rounds 2
+```
+
+**预期**: 输出每轮 `prompt/asr/llm/tts/action/total` 耗时，以及 ASR/LLM/TTS provider/model。远程从 Mac 验证时把 `--base-url` 改成 `http://<pi-ip>:8080`。
+
+### 5.6 查看日志
 
 ```bash
 # systemd 日志
@@ -252,21 +309,6 @@ i2cdetect -y 1
 # 看不到 0x3c 或 0x40 → 检查接线
 ```
 
-### ZeroMQ 连接超时
-
-```
-Error: Connection timeout on ipc:///tmp/mcar-router.sock
-```
-
-**解决**: 检查 /tmp/ 目录权限：
-
-```bash
-ls -la /tmp/mcar-*.sock
-# 如果有残留 sock 文件，删除后重启
-rm -f /tmp/mcar-*.sock
-sudo systemctl restart mcar
-```
-
 ### OLED 无显示
 
 ```bash
@@ -299,15 +341,12 @@ arecord -d 3 test.wav && aplay test.wav
 
 # 检查 pyaudio
 python3 -c "import pyaudio; print('OK')"
-```
 
-### Node.js 版本过低
+# 检查 openWakeWord provider
+python3 -c "import openwakeword.model; print('OK')"
 
-```bash
-node --version
-# 如果低于 v18:
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+# 首次使用内置唤醒词模型时下载资源
+python3 -c "from openwakeword.utils import download_models; download_models(['hey_jarvis_v0.1'])"
 ```
 
 ### 服务启动失败
@@ -317,9 +356,9 @@ sudo apt install -y nodejs
 journalctl -u mcar --no-pager -n 50
 
 # 常见原因:
-# 1. .ai_pet_env 未配置 → 检查 GEMINI_API_KEY
-# 2. 编译失败 → cd core && npx tsc
-# 3. 依赖缺失 → cd core && npm install
+# 1. LLM 回复降级 → 检查 GEMINI_API_KEY
+# 2. venv 未创建 → ./deploy/install.sh
+# 3. 依赖缺失 → .venv/bin/python -m pip install -e "modules[hw,voice,display,dev]"
 ```
 
 ## 7. 服务管理
